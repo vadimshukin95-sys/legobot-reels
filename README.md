@@ -27,3 +27,5 @@ Actions → **Render reel — «Робот-курьер»** → Run workflow. Ч
 © LEGObot (legobot.ru). Модели и логотип — собственность LEGObot; LEGO® — товарный знак LEGO Group, проект с ней не связан.
 
 Папка `ldraw/` — только те детали библиотеки [LDraw](https://www.ldraw.org), что нужны сценам (включая неофициальные, например хаб WeDo 2.0 `19071c01`). Библиотека LDraw распространяется по лицензии CC BY 2.0, авторы деталей указаны в самих файлах.
+
+Шрифты в `common/fonts/` — Rubik, Nunito, Unbounded, Montserrat Alternates, Russo One (SIL Open Font License 1.1, Google Fonts). Дизайн подписей курьера: стикеры в пастели карты, заголовки Nunito с персиковым объёмом (`timeline.json`: `cap_style`, `cap_palette`, `title_font`).

@@ -35,6 +35,103 @@ def dot(cv, x, y, r=17, col=YEL):
     d.ellipse([x - r, y - r, x + r, y + r], fill=col + (255,))
     d.ellipse([x - r * 0.45, y - r * 0.55, x - r * 0.05, y - r * 0.15], fill=(255, 255, 255, 200))
 
+KRAFT = (236, 206, 160)
+RED_S = (226, 45, 36)
+
+def label(lines, accent, size=56):
+    """parcel label: off-white tag, graphite border, dashed inner frame, barcode strip in the accent colour, tape on top"""
+    lh = int(size * 1.2)
+    tw = int(max(H.line_w(l, 800, size) for l in lines))
+    bar = 70; px, py = 40, 30
+    w = bar + tw + px * 2; h = lh * len(lines) + py * 2 - int(size * 0.15)
+    img = Image.new('RGBA', (w + 40, h + 70), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    ox, oy = 14, 34
+    d.rounded_rectangle([ox + 8, oy + 12, ox + w + 8, oy + h + 12], 18, fill=(0, 0, 0, 70))
+    d.rounded_rectangle([ox, oy, ox + w, oy + h], 18, fill=GRAPH)
+    d.rounded_rectangle([ox + 6, oy + 6, ox + w - 6, oy + h - 6], 13, fill=(255, 252, 244))
+    for x in range(ox + 18, ox + w - 18, 22):                         # dashed inner frame
+        d.line([(x, oy + 16), (x + 11, oy + 16)], fill=(190, 184, 172), width=3)
+        d.line([(x, oy + h - 16), (x + 11, oy + h - 16)], fill=(190, 184, 172), width=3)
+    d.rectangle([ox + 6, oy + 6, ox + bar, oy + h - 6], fill=accent)   # barcode strip
+    rr = __import__('random').Random(len(lines[0]))
+    yb = oy + 26
+    while yb < oy + h - 26:
+        t = rr.choice((3, 5, 8)); d.rectangle([ox + 18, yb, ox + bar - 12, yb + t], fill=GRAPH); yb += t + rr.choice((4, 6))
+    for i, l in enumerate(lines):
+        H.draw_line(d, ox + bar + px + (tw - H.line_w(l, 800, size)) / 2, oy + py - int(size * 0.1) + i * lh, l, 800, size, fill=GRAPH)
+    tape = Image.new('RGBA', (150, 46), (250, 240, 200, 190))                 # sticky tape
+    tape = tape.rotate(-6, expand=True, resample=Image.BICUBIC)
+    img.alpha_composite(tape, (ox + w // 2 - 75, 4))
+    return img
+
+def bubble(lines, accent, size=58):
+    """comic speech bubble with a tail pointing up toward the robot; graphite outline + accent rim"""
+    lh = int(size * 1.2)
+    tw = int(max(H.line_w(l, 800, size) for l in lines))
+    px, py = 54, 30
+    w = tw + px * 2; h = lh * len(lines) + py * 2 - int(size * 0.15)
+    pad = 30; top = 90
+    W_, H_ = w + pad * 2, h + top + pad
+    m = Image.new('L', (W_, H_), 0); md = ImageDraw.Draw(m)
+    bx, by = pad, top
+    md.rounded_rectangle([bx, by, bx + w, by + h], min(64, h // 2), fill=255)
+    tx = bx + w * 0.34
+    md.polygon([(tx - 46, by + 30), (tx + 40, by + 30), (tx - 52, by - 70)], fill=255)
+    img = Image.new('RGBA', (W_ + 12, H_ + 14), (0, 0, 0, 0))
+    out = H.dilate(m, 10); rim = H.dilate(m, 5)
+    sh = out.filter(__import__('PIL.ImageFilter', fromlist=['x']).GaussianBlur(6)).point(lambda v: int(v * 0.35))
+    img.paste((0, 0, 0, 255), (8, 12), sh)
+    img.paste(GRAPH + (255,), (0, 0), out)
+    img.paste(accent + (255,), (0, 0), rim)
+    img.paste(WHITE + (255,), (0, 0), m.filter(__import__('PIL.ImageFilter', fromlist=['x']).MinFilter(5)))
+    d = ImageDraw.Draw(img)
+    for k, l in enumerate(lines):
+        H.draw_line(d, bx + px + (tw - H.line_w(l, 800, size)) / 2, by + py - int(size * 0.1) + k * lh, l, 800, size, fill=GRAPH)
+    return img
+
+# ---- title / caption font sets (all OFL, Cyrillic) ----
+from PIL import ImageFont
+_FD = os.path.join(HERE, '..', '..', 'common', 'fonts')
+FONTSETS = {   # file, variation for titles (900), variation for captions (800), extrusion light, extrusion dark
+    'rubik':      (None, None, None, (52, 168, 83), (27, 110, 52)),
+    'nunito':     ('Nunito-Variable.ttf', 'Black', 'ExtraBold', (240, 150, 110), (190, 92, 66)),
+    'unbounded':  ('Unbounded-Variable.ttf', 'Black', 'Bold', (110, 175, 225), (52, 110, 170)),
+    'montserrat': (('MontserratAlternates-Black.ttf', 'MontserratAlternates-ExtraBold.ttf'), None, None, (165, 202, 24), (100, 135, 12)),
+}
+FONTSET = os.environ.get('TITLE_FONT', TL.get('title_font', 'rubik'))
+_fs = FONTSETS[FONTSET]
+H.GREEN, H.GREEN_D = _fs[3], _fs[4]
+if _fs[0]:
+    _cache = {}
+    def _font(weight, size, kind):
+        if kind == 'sym':
+            return ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', size)
+        k = (weight, size)
+        if k not in _cache:
+            if isinstance(_fs[0], tuple):
+                f = ImageFont.truetype(os.path.join(_FD, _fs[0][0] if weight >= 900 else _fs[0][1]), size)
+            else:
+                f = ImageFont.truetype(os.path.join(_FD, _fs[0]), size)
+                f.set_variation_by_name(_fs[1] if weight >= 900 else _fs[2])
+            _cache[k] = f
+        return _cache[k]
+    H.font = _font
+
+PALETTES = {   # caption colours by role
+    'brand':  {'hook': YEL, 'a': WHITE, 'b': ORANGE, 'c': YEL, 'cta': GREEN},
+    'map':    {'hook': (226, 45, 36), 'a': (255, 248, 236), 'b': (226, 45, 36), 'c': (255, 248, 236), 'cta': (226, 45, 36)},
+    'robot':  {'hook': (165, 202, 24), 'a': (255, 255, 255), 'b': (248, 183, 27), 'c': (62, 183, 232), 'cta': (165, 202, 24)},
+    'pastel': {'hook': (250, 214, 165), 'a': (255, 252, 246), 'b': (205, 228, 245), 'c': (214, 236, 200), 'cta': (246, 205, 211)},
+}
+
+STYLE = os.environ.get('CAP_STYLE', TL.get('cap_style', 'pill'))
+def cap(lines, bg, fg, size=56):
+    if STYLE == 'label':
+        return label(lines, bg if bg != WHITE else (47, 111, 222), size - 2)
+    if STYLE == 'bubble':
+        return bubble(lines, bg if bg != WHITE else (47, 111, 222), size)
+    return pill(lines, bg, fg, size)
+
 def logo_tile():
     lg = Image.open(LOGO_PATH).convert('RGBA')
     lg = lg.resize((300, int(lg.height * 300 / lg.width)), Image.LANCZOS)
@@ -50,18 +147,22 @@ def main(s, e):
     out_dir = os.path.join(HERE, os.environ.get('OVL_OUT_DIR', 'out'))
     os.makedirs(out_dir, exist_ok=True)
     stop, go = TL['stop'], TL['go']
-    T1 = volume_title(['РОБОТ-КУРЬЕР'], 118)
+    T1 = volume_title(['ЗАКАЗ ЕДЕТ!'], 128)
     T2 = volume_title(['ДОСТАВЛЕНО!'], 128)
     T4 = volume_title(['СОБЕРИ САМ!'], 122)
-    C0 = pill(['Как он шагает?'], YEL, GRAPH, 64)
-    C1 = pill(['Мотор крутит червяк'], WHITE, GRAPH, 58)
-    C2 = pill(['24 оборота мотора =', '1 оборот шестерни'], ORANGE, WHITE, 54)
-    C3 = pill(['Шкив с пальцем', 'водит ногу по кругу'], WHITE, GRAPH, 56)
-    C4 = pill(['Ремень крутит', 'обе оси вместе'], YEL, GRAPH, 56)
-    C5 = pill(['Ноги шагают', 'по очереди'], GREEN, WHITE, 60)
-    C6 = pill(['Датчик видит ладонь —', 'стоп!'], WHITE, GRAPH, 56)
-    C7 = pill(['Ждёт 3 секунды', 'и идёт дальше'], YEL, GRAPH, 56)
-    C8 = pill(['Инструкция доступна', 'в разделе legobot.ru/free'], GREEN, WHITE, 54)
+    P = PALETTES[os.environ.get('CAP_PALETTE', TL.get('cap_palette', 'brand'))]
+    def c(lines, role, size):
+        bg = P[role]; fg = GRAPH if (0.299 * bg[0] + 0.587 * bg[1] + 0.114 * bg[2]) > 140 else WHITE
+        return cap(lines, bg, fg, size)
+    C0 = c(['Курьер из LEGO', 'уже в пути'], 'hook', 62)
+    C1 = c(['Внутри', 'червячная передача'], 'a', 58)
+    C2 = c(['Медленно, зато', 'очень сильно'], 'b', 60)
+    C3 = c(['Шкив крутится,', 'нога шагает'], 'a', 58)
+    C4 = c(['Ремень держит ритм'], 'c', 60)
+    C5 = c(['Левой! Правой!'], 'b', 66)
+    C6 = c(['Ладонь?', 'Это клиент!'], 'a', 62)
+    C7 = c(['3 секунды,', 'и к следующему'], 'c', 58)
+    C8 = c(['Инструкция бесплатно:', 'legobot.ru/free'], 'cta', 58)
     LOGO = logo_tile()
     t0, t1 = TL['trace']
     for f in range(s, e + 1):

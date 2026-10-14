@@ -39,5 +39,8 @@
   ],
   "blend": 16,
   "bg": "map",
-  "frames": 492
+  "frames": 492,
+  "cap_style": "pill",
+  "cap_palette": "pastel",
+  "title_font": "nunito"
 }
