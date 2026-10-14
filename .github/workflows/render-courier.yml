@@ -1,0 +1,122 @@
+name: Render reel — «Робот-курьер» WeDo 2.0
+
+# Запуск вручную: Actions → Render reel → Run workflow (после согласования кадров)
+on:
+  workflow_dispatch:
+    inputs:
+      samples:
+        description: "Сэмплы Cycles (с шумодавом хватает 10–14)"
+        default: "12"
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: reel-courier
+  cancel-in-progress: true
+
+env:
+  SCENE: scenes/courier
+  FRAME_COUNT: "444"
+  CHUNKS: "20"
+  WIDTH: "1080"
+  HEIGHT: "1920"
+
+jobs:
+  render:
+    name: frames ${{ matrix.chunk }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    env:
+      LDRAW_DIR: ${{ github.workspace }}/ldraw
+      SAMPLES: ${{ inputs.samples || '12' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: System libraries for headless Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libegl1 libgl1 libxi6 libxkbcommon0 libsm6 libxrender1 libxxf86vm1 libxfixes3 > /dev/null
+
+      - name: Python packages
+        run: pip install -q bpy==5.2.2 pillow
+
+      - name: Cache LDraw parts library
+        id: ldraw
+        uses: actions/cache@v4
+        with:
+          path: ldraw
+          key: ldraw-complete-v1
+
+      - name: Download LDraw parts library
+        if: steps.ldraw.outputs.cache-hit != 'true'
+        run: |
+          curl -sSL -o complete.zip https://library.ldraw.org/library/updates/complete.zip
+          unzip -q complete.zip
+          rm complete.zip
+          test -f ldraw/LDConfig.ldr
+
+      - name: Render frames
+        run: |
+          PER=$(( (FRAME_COUNT + CHUNKS - 1) / CHUNKS ))
+          S=$(( ${{ matrix.chunk }} * PER + 1 ))
+          E=$(( S + PER - 1 )); [ "$E" -gt "$FRAME_COUNT" ] && E=$FRAME_COUNT
+          echo "S=$S" >> "$GITHUB_ENV"; echo "E=$E" >> "$GITHUB_ENV"
+          echo "frames $S..$E"
+          python "$SCENE/scene.py" anim "$S" "$E" "$WIDTH" "$HEIGHT" "$SAMPLES" 2>&1 | grep -E "Saved|Traceback|  File|Error" || true
+          test "$(ls $SCENE/frames/*.png | wc -l)" -eq $(( E - S + 1 ))
+
+      - name: Titles and captions
+        run: python "$SCENE/overlay.py" "$S" "$E"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: courier-${{ matrix.chunk }}
+          path: |
+            ${{ env.SCENE }}/out/*.png
+            ${{ env.SCENE }}/frames/*.png
+          retention-days: 2
+
+  assemble:
+    needs: render
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: courier-*
+          merge-multiple: true
+          path: dl
+
+      - name: Build MP4
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          mkdir -p o f
+          find dl -name 'o*.png' -exec mv {} o/ \;
+          find dl -name 'f*.png' -exec mv {} f/ \;
+          test "$(ls o | wc -l)" -eq "$FRAME_COUNT"
+          ffmpeg -loglevel error -framerate 24 -pattern_type glob -i 'o/o*.png' -i "$SCENE/audio.wav" \
+            -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -profile:v high -r 24 \
+            -c:a aac -b:a 192k -shortest -movflags +faststart robot_kurer_wedo2_reel.mp4
+          ffmpeg -loglevel error -framerate 24 -pattern_type glob -i 'f/f*.png' \
+            -c:v libx264 -crf 18 -pix_fmt yuv420p -movflags +faststart robot_kurer_wedo2_clean.mp4
+          ls -la *.mp4
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: video-courier
+          path: "*.mp4"
+          retention-days: 30
