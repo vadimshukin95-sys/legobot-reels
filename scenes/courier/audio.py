@@ -1,11 +1,12 @@
-"""Cheerful music + SFX for the robot-courier reel (444 frames @ 24 fps). Writes audio.wav.
+"""Cheerful music + SFX for the robot-courier reel (@ 24 fps, length from timeline.json). Writes audio.wav.
 Steps tick exactly when the supporting foot changes (same gait maths as scene.py)."""
 import os, sys, wave, json, math
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TL = json.load(open(os.path.join(HERE, 'timeline.json')))
-SR, FPS, FRAMES = 44100, 24, 444
+SR, FPS = 44100, 24
+FRAMES = TL.get('frames', 444)
 DUR = FRAMES / FPS + 0.25
 N = int(SR * DUR)
 rng = np.random.default_rng(5)

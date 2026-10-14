@@ -38,5 +38,6 @@
     ]
   ],
   "blend": 16,
-  "bg": "map"
+  "bg": "map",
+  "frames": 492
 }

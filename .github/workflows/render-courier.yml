@@ -19,7 +19,7 @@ concurrency:
 
 env:
   SCENE: scenes/courier
-  FRAME_COUNT: "444"
+  FRAME_COUNT: "492"
   CHUNKS: "20"
   WIDTH: "1080"
   HEIGHT: "1920"
@@ -50,21 +50,6 @@ jobs:
 
       - name: Python packages
         run: pip install -q bpy==5.2.2 pillow
-
-      - name: Cache LDraw parts library
-        id: ldraw
-        uses: actions/cache@v4
-        with:
-          path: ldraw
-          key: ldraw-complete-v1
-
-      - name: Download LDraw parts library
-        if: steps.ldraw.outputs.cache-hit != 'true'
-        run: |
-          curl -sSL -o complete.zip https://library.ldraw.org/library/updates/complete.zip
-          unzip -q complete.zip
-          rm complete.zip
-          test -f ldraw/LDConfig.ldr
 
       - name: Render frames
         run: |

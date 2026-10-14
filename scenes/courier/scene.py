@@ -3,7 +3,7 @@
 (сдвиг 180° между сторонами) водят бёдра 1x8 по кругу; датчик расстояния останавливает робота.
 Units: 1 Blender unit = 1 stud, Z up, robot walks toward -Y (LDraw front -Z), camera in front.
   python scene.py test 1,90,200 360 640 8
-  python scene.py anim 1 444 1080 1920 10
+  python scene.py anim 1 492 1080 1920 12
   python scene.py proj
 """
 import bpy, math, sys, json, os
@@ -13,15 +13,17 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import ldr
 
-FPS, FRAMES = 24, 444
+FPS = 24
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scn = bpy.context.scene
 scn.render.fps = FPS
-scn.frame_start, scn.frame_end = 1, FRAMES
+scn.frame_start = 1
 COL = ldr.colours()
 
 # ------------------------------------------------------------------ timeline (shared with overlay.py / audio.py)
 TL = json.load(open(os.path.join(HERE, 'timeline.json')))
+FRAMES = TL.get('frames', 444)
+scn.frame_end = FRAMES
 F_HAND0, F_HAND1, F_STOP, F_GO, F_HANDOUT = TL['hand0'], TL['hand1'], TL['stop'], TL['go'], TL['handout']
 OMEGA = TL['rev_per_s'] * 2 * math.pi / FPS          # crank rad per frame at full speed
 
