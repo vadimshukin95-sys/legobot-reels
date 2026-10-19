@@ -15,7 +15,7 @@ on:
       - ".github/workflows/still-dveri.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: still-dveri
@@ -59,3 +59,19 @@ jobs:
           name: dveri-still-${{ matrix.size }}
           path: out/*.png
           retention-days: 14
+
+      - name: Publish to stills branch (картинки — в ветку stills, папка dveri/)
+        env:
+          REPO: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
+        run: |
+          for i in 1 2 3 4 5; do
+            rm -rf /tmp/st
+            if ! git clone -q --depth 1 --branch stills "$REPO" /tmp/st 2>/dev/null; then
+              mkdir -p /tmp/st && git -C /tmp/st init -q -b stills && git -C /tmp/st remote add origin "$REPO"
+            fi
+            mkdir -p /tmp/st/dveri && cp out/*.png /tmp/st/dveri/
+            (cd /tmp/st && git -c user.name=github-actions -c user.email=actions@github.com add -A \
+              && git -c user.name=github-actions -c user.email=actions@github.com commit -q -m "dveri still ${{ matrix.size }}" \
+              && git push -q origin stills) && break
+            sleep $((RANDOM % 10 + 3))
+          done
