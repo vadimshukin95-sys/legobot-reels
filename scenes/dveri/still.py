@@ -17,10 +17,18 @@ exec(open(os.path.join(HERE, '_common.py')).read())
 from mathutils import Matrix, Vector
 
 HIDE_GROUPS = {'hub'}
+GLASS_GROUPS = {'door', 'panel', 'lintel'}     # стилизация: стеклянный фасад, механизм виден насквозь
+GLASS_PARTS_KEEP = {'3743.dat'}               # рейки остаются белыми
+
 HIDE_NOTES = ('под хаб',)
 
 # ------------------------------------------------ модель
 C = Matrix(((1, 0, 0), (0, 0, 1), (0, -1, 0)))
+GLASS = bpy.data.materials.new('glass'); GLASS.use_nodes = True
+_g = GLASS.node_tree.nodes['Principled BSDF']
+_g.inputs['Base Color'].default_value = lin('#EAF6FF'); _g.inputs['Roughness'].default_value = 0.04
+_g.inputs['Transmission Weight'].default_value = 1.0; _g.inputs['IOR'].default_value = 1.46
+_g.inputs['Coat Weight'].default_value = 0.4; _g.inputs['Coat Roughness'].default_value = 0.03
 parts = json.load(open(os.path.join(HERE, f'model_t{T:03d}.json'), encoding='utf-8'))
 MODEL = []
 for p in parts:
@@ -31,7 +39,13 @@ for p in parts:
     R = C @ Matrix(p['rot']) @ C.transposed()
     t = C @ (Vector(p['pos']) / 20.0)
     o.matrix_world = Matrix.Translation(t) @ R.to_4x4()
+    if p['group'] in GLASS_GROUPS and p['part'] not in GLASS_PARTS_KEEP:
+        o.data = o.data.copy()
+        for i in range(len(o.data.materials)):
+            o.data.materials[i] = GLASS
     MODEL.append(o)
+    if p['note'] == 'шестерня 8z':
+        GEAR = o
     if p['group'] == 'door' and p['part'] == '3702.dat':
         DOOR = o
 bpy.context.view_layer.update()
@@ -59,8 +73,8 @@ def asphalt():
     big = N.new('ShaderNodeTexNoise'); big.inputs['Scale'].default_value = 0.09; big.inputs['Detail'].default_value = 4
     L.new(tc.outputs['Object'], big.inputs['Vector'])
     ramp = N.new('ShaderNodeValToRGB')
-    ramp.color_ramp.elements[0].position = 0.46; ramp.color_ramp.elements[0].color = (0.03, 0.03, 0.03, 1)   # лужа
-    ramp.color_ramp.elements[1].position = 0.56; ramp.color_ramp.elements[1].color = (0.55, 0.55, 0.55, 1)   # сухо
+    ramp.color_ramp.elements[0].position = 0.33; ramp.color_ramp.elements[0].color = (0.03, 0.03, 0.03, 1)   # лужа
+    ramp.color_ramp.elements[1].position = 0.42; ramp.color_ramp.elements[1].color = (0.55, 0.55, 0.55, 1)   # сухо
     L.new(big.outputs['Fac'], ramp.inputs['Fac']); L.new(ramp.outputs['Color'], b.inputs['Roughness'])
     grain = N.new('ShaderNodeTexNoise'); grain.inputs['Scale'].default_value = 9.0; grain.inputs['Detail'].default_value = 6
     L.new(tc.outputs['Object'], grain.inputs['Vector'])
@@ -82,11 +96,11 @@ box('street', -200, 200, -200, FAC_Y, Z0 - 0.3, Z0, asphalt())
 box('store_floor', -200, 200, FAC_Y, 120, Z0 - 0.3, Z0 - 0.02, mat('store_floor', '#E9E1D2', 0.18))
 # «бордюр» под основанием модели — чтобы модель стояла на чём-то, а не парила
 # стена магазина вдали — тёплая, размытая расфокусом
-box('store_back', -200, 200, 60, 61, Z0, 60, mat('store_back', '#F3E3C4', 0.9, '#FFD9A0', 1.6))
+box('store_back', -200, 200, 90, 91, Z0, 60, mat('store_back', '#F3E3C4', 0.9, '#FFD9A0', 0.7))
 # полки с «товарами»: ряды цветных светящихся кубиков — в расфокусе дадут разноцветное боке
 random.seed(7)
 GOODS = ['#E8475F', '#F5A623', '#4CAF2E', '#2A9FD6', '#FFD23A', '#F28C28', '#E86AA6', '#FFFFFF']
-for row, (y, x0, x1) in enumerate(((22, -40, 40), (34, -50, 50), (46, -60, 60))):
+for row, (y, x0, x1) in enumerate(((40, -50, 50), (56, -60, 60), (72, -70, 70))):
     shelf = mat(f'shelf{row}', '#D8D2C6', 0.6)
     for zz in (2.5, 6.0, 9.5, 13.0):
         box(f'shelf_{row}_{zz}', x0, x1, y, y + 3, Z0 + zz - 0.2, Z0 + zz, shelf)
@@ -94,16 +108,16 @@ for row, (y, x0, x1) in enumerate(((22, -40, 40), (34, -50, 50), (46, -60, 60)))
         while x < x1 - 1.5:
             w = random.uniform(0.8, 2.0); h = random.uniform(1.0, 2.6)
             c = random.choice(GOODS)
-            box('good', x, x + w, y + 0.4, y + 2.4, Z0 + zz, Z0 + zz + h, mat('g' + c, c, 0.5, c, 0.6))
+            box('good', x, x + w, y + 0.4, y + 2.4, Z0 + zz, Z0 + zz + h, mat('g' + c, c, 0.5, c, 0.9))
             x += w + random.uniform(0.15, 0.6)
 # потолочные светильники магазина (линии)
-for y in (12, 26, 40, 54):
-    box(f'lamp_{y}', -60, 60, y, y + 0.8, Z0 + 26, Z0 + 26.3, mat('lamp', '#FFFFFF', 0.5, '#FFF1D6', 12))
+for y in (30, 46, 62, 78):
+    box(f'lamp_{y}', -60, 60, y, y + 0.8, Z0 + 26, Z0 + 26.3, mat('lamp', '#FFFFFF', 0.5, '#FFF1D6', 6))
 
 # небо: сумерки (градиент тёмно-синего), подсвечивает модель холодным
 world = bpy.data.worlds.new('w'); scn.world = world; world.use_nodes = True
 wn = world.node_tree.nodes; wl = world.node_tree.links
-bg = wn['Background']; bg.inputs['Strength'].default_value = 0.6
+bg = wn['Background']; bg.inputs['Strength'].default_value = 0.9
 grad_tc = wn.new('ShaderNodeTexCoord'); sep = wn.new('ShaderNodeSeparateXYZ')
 wl.new(grad_tc.outputs['Generated'], sep.inputs['Vector'])
 sky = wn.new('ShaderNodeValToRGB')
@@ -123,26 +137,29 @@ cx = (lo.x + hi.x) / 2
 door_gap_x = (-6.0 + DOOR.matrix_world.translation.x - 4.0) / 2      # середина проёма между стойкой и створкой
 # свет магазина: изнутри, из-за проёма — тёплое пятно на асфальте перед дверью
 area('store_light', (door_gap_x, 9, Z0 + 9), (door_gap_x, -4, Z0), 10, 9000, '#FFC27A')
-area('store_fill', (cx, 30, Z0 + 18), (cx, 0, Z0 + 2), 30, 14000, '#FFD8A8')
+area('store_fill', (cx, 30, Z0 + 18), (cx, 0, Z0 + 2), 30, 6000, '#FFD8A8')
 # фонарь над входом (тёплый) и холодный «уличный» свет слева-спереди
 area('door_lamp', (door_gap_x, -4, Z0 + 12), (door_gap_x, -1, Z0 + 4), 3, 1400, '#FFE2B0')
 area('street_key', (-26, -22, Z0 + 22), (cx, 0, Z0 + 3), 16, 9500, '#BFD3FF')
 area('warm_key', (24, -26, Z0 + 14), (cx, 0, Z0 + 3), 12, 4200, '#FFE9CF')
+
+mech = GEAR.matrix_world.translation
+area('mech_spot', (mech.x - 6, mech.y - 10, mech.z + 12), tuple(mech), 4, 2600, '#FFF3DD')
 
 # ------------------------------------------------ камера: спереди-слева, чуть сверху, глубина резкости
 cam_d = bpy.data.cameras.new('cam'); cam = bpy.data.objects.new('cam', cam_d)
 bpy.context.collection.objects.link(cam); scn.camera = cam
 tgt = empty('cam_target', (0, 0, 0))
 c = cam.constraints.new('TRACK_TO'); c.target = tgt; c.track_axis = 'TRACK_NEGATIVE_Z'; c.up_axis = 'UP_Y'
-cam_d.sensor_width = 36; cam_d.lens = 55
-VIEW = Vector((-0.34, -0.90, 0.27)).normalized()
-ctr = Vector(((lo.x + hi.x) / 2 - 0.6, (lo.y + 2.0) / 2, (lo.z + hi.z) / 2))
+cam_d.sensor_width = 36; cam_d.lens = 60
+VIEW = Vector((-0.38, -0.84, 0.48)).normalized()
+ctr = Vector(((lo.x + hi.x) / 2 - 0.4, 0.6, (lo.z + hi.z) / 2 - 0.3))
 fov = 2 * math.atan(cam_d.sensor_width / 2 / cam_d.lens)
-rad = max(hi.x - lo.x, hi.z - lo.z) * 0.62
+rad = max(hi.x - lo.x, hi.z - lo.z) * 0.50
 dist = rad / math.tan(fov / 2) * (1.0 if W >= H else W / H)
 tgt.location = ctr + Vector((0, 0, 0.3))
 cam.location = ctr + VIEW * dist
-cam_d.dof.use_dof = True; cam_d.dof.focus_object = DOOR; cam_d.dof.aperture_fstop = 2.2
+cam_d.dof.use_dof = True; cam_d.dof.focus_object = GEAR; cam_d.dof.aperture_fstop = 2.8
 
 r = scn.render
 r.engine = 'CYCLES'; r.resolution_x, r.resolution_y = W, H
@@ -150,7 +167,7 @@ cy = scn.cycles; cy.device = 'CPU'; cy.samples = SAMPLES
 cy.use_adaptive_sampling = True; cy.adaptive_threshold = 0.03
 cy.use_denoising = True; cy.denoiser = 'OPENIMAGEDENOISE'
 cy.max_bounces = 6; cy.diffuse_bounces = 3; cy.glossy_bounces = 3
-cy.transmission_bounces = 3; cy.transparent_max_bounces = 4
+cy.transmission_bounces = 8; cy.transparent_max_bounces = 8
 scn.view_settings.view_transform = 'AgX'
 try:
     scn.view_settings.look = 'AgX - Medium High Contrast'
