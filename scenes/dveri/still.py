@@ -1,6 +1,6 @@
 """«Двери супермаркета» (WeDo 2.0, реечная передача) — стоп-кадр для поста.
-Вечерний вход в магазин: мокрый асфальт перед дверью, тёплый свет магазина льётся через открытый проём,
-внутри — светлый пол и размытые огни полок, сверху — сумеречное небо.
+Спокойный графитовый фон-циклорама, тёплый свет из проёма; дверь, панель и перемычка — стекло (стилизация),
+чтобы на виду были мотор, шестерня 8z и рейки.
 Модель берётся из конвейера инструкций (legobot-wedo-pipeline/models/dveri) — model_tNNN.json.
 Хаб и пластины под ним в кадр не берём (как на посте с катапультой): за проёмом виден «магазин».
 
@@ -90,30 +90,10 @@ def box(name, x0, x1, y0, y1, z0, z1, m):
     o = bpy.context.object; o.name = name; o.scale = (x1 - x0, y1 - y0, z1 - z0)
     o.data.materials.append(m); return o
 
-# улица перед фасадом и пол магазина за ним (линия фасада — задний край основания перед дверью)
-FAC_Y = 2.0
-box('street', -200, 200, -200, FAC_Y, Z0 - 0.3, Z0, asphalt())
-box('store_floor', -200, 200, FAC_Y, 120, Z0 - 0.3, Z0 - 0.02, mat('store_floor', '#E9E1D2', 0.18))
-# «бордюр» под основанием модели — чтобы модель стояла на чём-то, а не парила
-# стена магазина вдали — тёплая, размытая расфокусом
-box('store_back', -200, 200, 90, 91, Z0, 60, mat('store_back', '#F3E3C4', 0.9, '#FFD9A0', 0.7))
-# полки с «товарами»: ряды цветных светящихся кубиков — в расфокусе дадут разноцветное боке
-random.seed(7)
-GOODS = ['#E8475F', '#F5A623', '#4CAF2E', '#2A9FD6', '#FFD23A', '#F28C28', '#E86AA6', '#FFFFFF']
-for row, (y, x0, x1) in enumerate(((40, -50, 50), (56, -60, 60), (72, -70, 70))):
-    shelf = mat(f'shelf{row}', '#D8D2C6', 0.6)
-    for zz in (2.5, 6.0, 9.5, 13.0):
-        box(f'shelf_{row}_{zz}', x0, x1, y, y + 3, Z0 + zz - 0.2, Z0 + zz, shelf)
-        x = x0 + random.uniform(0, 2)
-        while x < x1 - 1.5:
-            w = random.uniform(0.8, 2.0); h = random.uniform(1.0, 2.6)
-            c = random.choice(GOODS)
-            box('good', x, x + w, y + 0.4, y + 2.4, Z0 + zz, Z0 + zz + h, mat('g' + c, c, 0.5, c, 0.9))
-            x += w + random.uniform(0.15, 0.6)
-# потолочные светильники магазина (линии)
-for y in (30, 46, 62, 78):
-    box(f'lamp_{y}', -60, 60, y, y + 0.8, Z0 + 26, Z0 + 26.3, mat('lamp', '#FFFFFF', 0.5, '#FFF1D6', 6))
-
+# простой спокойный фон: матовый графитовый пол с лёгким отражением и стена вдали (в расфокусе)
+FLOOR = mat('floor', '#3A3D44', 0.38)
+box('floor', -300, 300, -300, 300, Z0 - 0.3, Z0, FLOOR)
+box('wall', -300, 300, 40, 41, Z0, Z0 + 200, mat('wall', '#4A5160', 0.9))
 # небо: сумерки (градиент тёмно-синего), подсвечивает модель холодным
 world = bpy.data.worlds.new('w'); scn.world = world; world.use_nodes = True
 wn = world.node_tree.nodes; wl = world.node_tree.links
@@ -121,8 +101,8 @@ bg = wn['Background']; bg.inputs['Strength'].default_value = 0.9
 grad_tc = wn.new('ShaderNodeTexCoord'); sep = wn.new('ShaderNodeSeparateXYZ')
 wl.new(grad_tc.outputs['Generated'], sep.inputs['Vector'])
 sky = wn.new('ShaderNodeValToRGB')
-sky.color_ramp.elements[0].position = 0.48; sky.color_ramp.elements[0].color = lin('#3A4E7A')
-sky.color_ramp.elements[1].position = 0.75; sky.color_ramp.elements[1].color = lin('#0E1630')
+sky.color_ramp.elements[0].position = 0.48; sky.color_ramp.elements[0].color = lin('#565E6E')
+sky.color_ramp.elements[1].position = 0.75; sky.color_ramp.elements[1].color = lin('#2A2F3A')
 wl.new(sep.outputs['Z'], sky.inputs['Fac']); wl.new(sky.outputs['Color'], bg.inputs['Color'])
 
 def area(name, loc, look, size, power, hexv='#FFFFFF', cam_vis=False):
@@ -136,11 +116,11 @@ def area(name, loc, look, size, power, hexv='#FFFFFF', cam_vis=False):
 cx = (lo.x + hi.x) / 2
 door_gap_x = (-6.0 + DOOR.matrix_world.translation.x - 4.0) / 2      # середина проёма между стойкой и створкой
 # свет магазина: изнутри, из-за проёма — тёплое пятно на асфальте перед дверью
-area('store_light', (door_gap_x, 9, Z0 + 9), (door_gap_x, -4, Z0), 10, 9000, '#FFC27A')
-area('store_fill', (cx, 30, Z0 + 18), (cx, 0, Z0 + 2), 30, 6000, '#FFD8A8')
+area('door_glow', (door_gap_x, 7, Z0 + 6), (door_gap_x, -4, Z0), 5, 3500, '#FFC27A')
+area('back_rim', (cx + 4, 16, Z0 + 16), (cx, 0, Z0 + 3), 14, 3500, '#FFE3C2')
 # фонарь над входом (тёплый) и холодный «уличный» свет слева-спереди
 area('door_lamp', (door_gap_x, -4, Z0 + 12), (door_gap_x, -1, Z0 + 4), 3, 1400, '#FFE2B0')
-area('street_key', (-26, -22, Z0 + 22), (cx, 0, Z0 + 3), 16, 9500, '#BFD3FF')
+area('key', (-26, -22, Z0 + 22), (cx, 0, Z0 + 3), 16, 9000, '#E6EEFF')
 area('warm_key', (24, -26, Z0 + 14), (cx, 0, Z0 + 3), 12, 4200, '#FFE9CF')
 
 mech = GEAR.matrix_world.translation
