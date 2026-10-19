@@ -1,0 +1,43 @@
+{
+ "frames": 420,
+ "hand0": 40,
+ "hand1": 76,
+ "detect": 80,
+ "open0": 96,
+ "open1": 146,
+ "handout": 190,
+ "close0": 262,
+ "close1": 310,
+ "end": 322,
+ "travel": 6.0,
+ "shots": [
+  [
+   1,
+   "hero"
+  ],
+  [
+   36,
+   "sensor"
+  ],
+  [
+   94,
+   "mech"
+  ],
+  [
+   156,
+   "open"
+  ],
+  [
+   256,
+   "mech2"
+  ],
+  [
+   314,
+   "end"
+  ]
+ ],
+ "blend": 18,
+ "cap_style": "pill",
+ "cap_palette": "pastel",
+ "title_font": "nunito"
+}

@@ -1,0 +1,102 @@
+name: Render reel — двери супермаркета WeDo 2.0
+
+# Полный рендер: пуш в ветку scene-dveri с изменением scenes/dveri/RENDER (первая строка — сэмплы)
+on:
+  push:
+    branches: [scene-dveri]
+    paths: ["scenes/dveri/RENDER"]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: reel-dveri
+  cancel-in-progress: true
+
+env:
+  SCENE: scenes/dveri
+  FRAME_COUNT: "420"
+  CHUNKS: "20"
+  WIDTH: "1080"
+  HEIGHT: "1920"
+
+jobs:
+  render:
+    name: frames ${{ matrix.chunk }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    env:
+      LDRAW_DIR: ${{ github.workspace }}/ldraw
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: System libraries for headless Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libegl1 libgl1 libxi6 libxkbcommon0 libsm6 libxrender1 libxxf86vm1 libxfixes3 > /dev/null
+      - run: pip install -q bpy==5.2.2 pillow
+      - name: Render frames
+        run: |
+          SAMPLES=$(head -1 $SCENE/RENDER)
+          PER=$(( (FRAME_COUNT + CHUNKS - 1) / CHUNKS ))
+          S=$(( ${{ matrix.chunk }} * PER + 1 ))
+          E=$(( S + PER - 1 )); [ "$E" -gt "$FRAME_COUNT" ] && E=$FRAME_COUNT
+          echo "S=$S" >> "$GITHUB_ENV"; echo "E=$E" >> "$GITHUB_ENV"
+          python "$SCENE/scene.py" anim "$S" "$E" "$WIDTH" "$HEIGHT" "$SAMPLES" 2>&1 | grep -E "Saved|Traceback|  File|Error" || true
+          test "$(ls $SCENE/frames/*.png | wc -l)" -eq $(( E - S + 1 ))
+      - name: Titles and captions
+        run: python "$SCENE/overlay.py" "$S" "$E"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dveri-${{ matrix.chunk }}
+          path: |
+            ${{ env.SCENE }}/out/*.png
+            ${{ env.SCENE }}/frames/*.png
+          retention-days: 2
+
+  assemble:
+    needs: render
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dveri-*
+          merge-multiple: true
+          path: dl
+      - name: Build MP4
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          mkdir -p o f
+          find dl -name 'o*.png' -exec mv {} o/ \;
+          find dl -name 'f*.png' -exec mv {} f/ \;
+          test "$(ls o | wc -l)" -eq "$FRAME_COUNT"
+          ffmpeg -loglevel error -framerate 24 -pattern_type glob -i 'o/o*.png' -i "$SCENE/audio.wav" \
+            -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -profile:v high -r 24 \
+            -c:a aac -b:a 192k -shortest -movflags +faststart dveri_supermarket_wedo2_reel.mp4
+          ffmpeg -loglevel error -framerate 24 -pattern_type glob -i 'f/f*.png' \
+            -c:v libx264 -crf 18 -pix_fmt yuv420p -movflags +faststart dveri_supermarket_wedo2_clean.mp4
+          cp f/f0150.png dveri_kadr_open.png; cp o/o0340.png dveri_kadr_end.png
+          ls -la *.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: video-dveri
+          path: "*.mp4"
+          retention-days: 30
+      - name: Publish to stills branch
+        env:
+          REPO: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
+        run: |
+          git clone -q --depth 1 --branch stills "$REPO" /tmp/st
+          mkdir -p /tmp/st/dveri-reel && cp *.mp4 dveri_kadr_*.png /tmp/st/dveri-reel/
+          cd /tmp/st && git -c user.name=github-actions -c user.email=actions@github.com add -A \
+            && git -c user.name=github-actions -c user.email=actions@github.com commit -q -m "dveri reel" && git push -q origin stills
