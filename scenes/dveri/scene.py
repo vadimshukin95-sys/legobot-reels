@@ -37,11 +37,11 @@ def disp(f):
 GLASS = bpy.data.materials.new('ghost'); GLASS.use_nodes = True     # «рентген»: почти прозрачный белёсый пластик
 _nt = GLASS.node_tree; _n = _nt.nodes; _l = _nt.links
 _b = _n['Principled BSDF']
-_b.inputs['Base Color'].default_value = lin('#EEF6FB'); _b.inputs['Roughness'].default_value = 0.25
+_b.inputs['Base Color'].default_value = lin('#DCEFFA'); _b.inputs['Roughness'].default_value = 0.25
 _b.inputs['Coat Weight'].default_value = 0.3
 _tr = _n.new('ShaderNodeBsdfTransparent'); _mx = _n.new('ShaderNodeMixShader')
 _fr = _n.new('ShaderNodeLayerWeight'); _fr.inputs['Blend'].default_value = 0.35
-_mp = _n.new('ShaderNodeMapRange'); _mp.inputs['To Min'].default_value = 0.12; _mp.inputs['To Max'].default_value = 0.55
+_mp = _n.new('ShaderNodeMapRange'); _mp.inputs['To Min'].default_value = 0.04; _mp.inputs['To Max'].default_value = 0.32
 _l.new(_fr.outputs['Facing'], _mp.inputs['Value'])
 _l.new(_mp.outputs['Result'], _mx.inputs['Fac'])
 _l.new(_tr.outputs['BSDF'], _mx.inputs[1]); _l.new(_b.outputs['BSDF'], _mx.inputs[2])
@@ -50,7 +50,7 @@ try:
     GLASS.blend_method = 'BLEND'
 except Exception:
     pass
-GLASS_GROUPS = {'door', 'panel', 'lintel'}
+GLASS_GROUPS = {'panel', 'lintel'}            # дверь — в настоящих цветах, «рентген» только у того, что её закрывает
 KEEP = {'3743.dat'}                                     # рейки — белые
 
 # ------------------------------------------------ модель
@@ -218,12 +218,12 @@ c = cam.constraints.new('TRACK_TO'); c.target = tgt; c.track_axis = 'TRACK_NEGAT
 cam_d.sensor_width = 36
 cam_d.dof.use_dof = True; cam_d.dof.focus_object = tgt; cam_d.dof.aperture_fstop = 4.0
 SHOT = {   # камера, цель, объектив (абсолютные координаты: модель неподвижна)
-    'hero':   ((-6.0, -36.0, 13.0), (0.5, 0.0, 3.6), 50),
-    'sensor': ((10.0, -26.0, 12.0), (-2.4, -2.5, 5.4), 50),
-    'mech':   ((9.0, -16.0, 12.0), (1.8, -0.5, 4.8), 50),
-    'open':   ((-4.0, -34.0, 8.0), (0.0, 0.0, 3.2), 50),
-    'mech2':  ((-6.0, -15.0, 14.0), (2.0, -0.5, 4.6), 50),
-    'end':    ((6.0, -40.0, 16.0), (0.5, 0.5, 3.8), 50),
+    'hero':   ((-5.0, -27.0, 11.0), (0.0, 0.0, 3.4), 50),
+    'sensor': ((7.0, -19.0, 10.0), (-2.6, -2.0, 5.0), 50),
+    'mech':   ((5.0, -12.0, 12.5), (1.6, -0.6, 4.6), 45),
+    'open':   ((-3.0, -26.0, 7.5), (0.0, 0.0, 3.0), 50),
+    'mech2':  ((-3.5, -12.0, 12.5), (1.6, -0.6, 4.4), 45),
+    'end':    ((5.0, -30.0, 13.0), (0.5, 0.0, 3.6), 50),
 }
 SEQ = TL['shots']; BLEND = TL['blend']
 def shot_at(f):
