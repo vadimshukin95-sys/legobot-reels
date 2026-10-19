@@ -34,11 +34,22 @@ def disp(f):
     return 0.0
 
 # ------------------------------------------------ стекло
-GLASS = bpy.data.materials.new('glass'); GLASS.use_nodes = True
-_g = GLASS.node_tree.nodes['Principled BSDF']
-_g.inputs['Base Color'].default_value = lin('#F2FAFF'); _g.inputs['Roughness'].default_value = 0.05
-_g.inputs['Transmission Weight'].default_value = 1.0; _g.inputs['IOR'].default_value = 1.45
-_g.inputs['Coat Weight'].default_value = 0.5; _g.inputs['Coat Roughness'].default_value = 0.03
+GLASS = bpy.data.materials.new('ghost'); GLASS.use_nodes = True     # «рентген»: почти прозрачный белёсый пластик
+_nt = GLASS.node_tree; _n = _nt.nodes; _l = _nt.links
+_b = _n['Principled BSDF']
+_b.inputs['Base Color'].default_value = lin('#EEF6FB'); _b.inputs['Roughness'].default_value = 0.25
+_b.inputs['Coat Weight'].default_value = 0.3
+_tr = _n.new('ShaderNodeBsdfTransparent'); _mx = _n.new('ShaderNodeMixShader')
+_fr = _n.new('ShaderNodeLayerWeight'); _fr.inputs['Blend'].default_value = 0.35
+_mp = _n.new('ShaderNodeMapRange'); _mp.inputs['To Min'].default_value = 0.12; _mp.inputs['To Max'].default_value = 0.55
+_l.new(_fr.outputs['Facing'], _mp.inputs['Value'])
+_l.new(_mp.outputs['Result'], _mx.inputs['Fac'])
+_l.new(_tr.outputs['BSDF'], _mx.inputs[1]); _l.new(_b.outputs['BSDF'], _mx.inputs[2])
+_l.new(_mx.outputs['Shader'], _n['Material Output'].inputs['Surface'])
+try:
+    GLASS.blend_method = 'BLEND'
+except Exception:
+    pass
 GLASS_GROUPS = {'door', 'panel', 'lintel'}
 KEEP = {'3743.dat'}                                     # рейки — белые
 
@@ -148,9 +159,9 @@ def hand_rot(sleeve_dir):
     y = Vector((0, -1, 0)); y = (y - z * y.dot(z)).normalized()
     x = y.cross(z)
     return Matrix((x, y, z)).transposed()
-SLEEVE = Vector((0.95, -0.55, -0.42))
-PALM_AT = SENSOR_FRONT + Vector((0.6, -5.0, -0.4))
-OUT = Vector((16, -6, -2))
+SLEEVE = Vector((-0.95, -0.55, -0.42))
+PALM_AT = SENSOR_FRONT + Vector((-0.6, -5.0, -0.4))
+OUT = Vector((-16, -6, -2))
 def kh(f, palm, sleeve=SLEEVE):
     Rm = hand_rot(sleeve)
     HAND.matrix_world = Matrix.Translation(palm - Rm @ PALM_LOCAL) @ Rm.to_4x4() @ Matrix.Scale(HSC, 4)
@@ -160,9 +171,9 @@ for ob in [HAND] + list(HAND.children):
         ob.hide_render = hid; ob.keyframe_insert('hide_render', frame=f_)
 kh(1, PALM_AT + OUT)
 kh(TL['hand0'], PALM_AT + OUT)
-kh(TL['hand1'] - 8, PALM_AT + Vector((0.8, -0.6, 0.4)))
+kh(TL['hand1'] - 8, PALM_AT + Vector((-0.8, -0.6, 0.4)))
 kh(TL['hand1'], PALM_AT)
-kh(TL['handout'] - 4, PALM_AT + Vector((0.2, 0.1, 0.1)))
+kh(TL['handout'] - 4, PALM_AT + Vector((-0.2, 0.1, 0.1)))
 kh(TL['handout'] + 26, PALM_AT + OUT * 1.1)
 
 # ------------------------------------------------ студия: пастельная бесшовная циклорама
@@ -207,12 +218,12 @@ c = cam.constraints.new('TRACK_TO'); c.target = tgt; c.track_axis = 'TRACK_NEGAT
 cam_d.sensor_width = 36
 cam_d.dof.use_dof = True; cam_d.dof.focus_object = tgt; cam_d.dof.aperture_fstop = 4.0
 SHOT = {   # камера, цель, объектив (абсолютные координаты: модель неподвижна)
-    'hero':   ((-9.0, -50.0, 17.0), (1.5, 0.5, 3.2), 50),
-    'sensor': ((-15.0, -29.0, 13.0), (-2.2, -2.5, 5.4), 50),
-    'mech':   ((-7.0, -19.0, 14.0), (1.8, -0.4, 4.6), 50),
-    'open':   ((-6.0, -46.0, 9.0), (0.8, 0.0, 3.0), 50),
-    'mech2':  ((10.0, -20.0, 12.0), (1.8, -0.4, 4.4), 50),
-    'end':    ((7.0, -54.0, 20.0), (1.5, 0.5, 3.6), 50),
+    'hero':   ((-6.0, -36.0, 13.0), (0.5, 0.0, 3.6), 50),
+    'sensor': ((10.0, -26.0, 12.0), (-2.4, -2.5, 5.4), 50),
+    'mech':   ((9.0, -16.0, 12.0), (1.8, -0.5, 4.8), 50),
+    'open':   ((-4.0, -34.0, 8.0), (0.0, 0.0, 3.2), 50),
+    'mech2':  ((-6.0, -15.0, 14.0), (2.0, -0.5, 4.6), 50),
+    'end':    ((6.0, -40.0, 16.0), (0.5, 0.5, 3.8), 50),
 }
 SEQ = TL['shots']; BLEND = TL['blend']
 def shot_at(f):
