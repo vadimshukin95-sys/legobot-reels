@@ -267,7 +267,7 @@ def write_proj(frames):
     for f in frames:
         scn.frame_set(f)
         pr = lambda v: [round(x, 4) for x in list(world_to_camera_view(scn, cam, v))[:2]]
-        res[f] = {'sensor': pr(SENSOR_FRONT), 'gear': pr(GEAR.matrix_world.translation), 'door': pr(DOOR_ROOT.matrix_world @ Vector((-4.0, -1.0, 2.0)))}
+        res[f] = {'sensor': pr(SENSOR_FRONT), 'gear': pr(GEAR.matrix_world.translation), 'gear_e': pr(GEAR.matrix_world.translation + Vector((0, 0, 0.62))), 'door': pr(DOOR_ROOT.matrix_world @ Vector((-4.0, -1.0, 2.0)))}
     old = {}
     pj = os.path.join(HERE, 'proj.json')
     if os.path.exists(pj):
