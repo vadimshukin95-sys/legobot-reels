@@ -162,6 +162,8 @@ def main(s, e):
     C5 = c(['Мотор назад —', 'дверь закрылась'], 'b', 60)
     C8 = c(['Схемы и уроки WeDo 2.0:', 'legobot.ru'], 'cta', 58)
     LOGO = logo_tile()
+    ARR_R = pill(['рейка  →'], YEL, GRAPH, 50)
+    ARR_L = pill(['←  рейка'], YEL, GRAPH, 50)
     for f in range(s, e + 1):
         src = os.path.join(HERE, os.environ.get('OVL_FRAMES_DIR', 'frames'), f'f{f:04d}.png')
         cv = Image.open(src).convert('RGB').resize((W, Hh), Image.LANCZOS).convert('RGBA')
@@ -169,6 +171,11 @@ def main(s, e):
         if p and det - 8 <= f <= det + 14:
             sx, sy = p['sensor']
             rings(cv, sx * W, (1 - sy) * Hh, f, det - 8, rmax=160, col=(51, 224, 90))
+        if p and (o0 <= f <= o1 + 8 or c0 <= f <= c1 + 8):           # шестерня: жёлтый пунктир + стрелка хода рейки
+            gx, gy = p['gear'][0] * W, (1 - p['gear'][1]) * Hh
+            ring_pts = [(gx + 95 * math.cos(a / 40 * 2 * math.pi), gy + 95 * math.sin(a / 40 * 2 * math.pi)) for a in range(41)]
+            dashed(cv, ring_pts, f)
+            place(cv, ARR_R if f < c0 else ARR_L, gx, gy + 190, f, o0 if f < c0 else c0, (o1 if f < c0 else c1) + 8, rot=0, wobble=0.3, intro=5)
         place(cv, T1, W / 2, 330, f, 3, 76, rot=-2, wobble=0.6)
         place(cv, C0, W / 2, 1640, f, 12, 74, rot=1.5, wobble=0.8)
         place(cv, C1, W / 2, 1640, f, det - 4, o0 + 2, rot=-1.4, wobble=0.8, intro=5)
