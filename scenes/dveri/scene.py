@@ -129,7 +129,7 @@ def kled(f, col, strength):
     led.inputs['Emission Color'].default_value = col; led.inputs['Emission Color'].keyframe_insert('default_value', frame=f)
     led.inputs['Emission Strength'].default_value = strength; led.inputs['Emission Strength'].keyframe_insert('default_value', frame=f)
 F_ON, F_OFF = TL['detect'], TL['close1']
-kled(1, BLUE, 6); kled(F_ON - 1, BLUE, 6); kled(F_ON, GREENL, 14); kled(F_OFF, GREENL, 14); kled(F_OFF + 1, BLUE, 6)
+kled(1, BLUE, 6); kled(F_ON - 1, BLUE, 6); kled(F_ON, GREENL, 7); kled(F_OFF, GREENL, 7); kled(F_OFF + 1, BLUE, 6)
 gl = bpy.data.lights.new('ledglow', 'POINT'); gl.shadow_soft_size = 0.3
 glo = bpy.data.objects.new('ledglow', gl); bpy.context.collection.objects.link(glo); glo.location = LED + Vector((0, 0, 0.6))
 glo.visible_glossy = False
