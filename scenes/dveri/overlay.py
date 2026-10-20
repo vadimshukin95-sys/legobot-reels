@@ -171,12 +171,13 @@ def main(s, e):
         if p and det - 8 <= f <= det + 14:
             sx, sy = p['sensor']
             rings(cv, sx * W, (1 - sy) * Hh, f, det - 8, rmax=160, col=(51, 224, 90))
-        if p and (o0 <= f <= o1 + 8 or c0 <= f <= c1 + 8):           # шестерня: жёлтый пунктир + стрелка хода рейки
+        if p and o0 <= f <= o1 + 8:           # шестерня: жёлтый пунктир + стрелка хода рейки
             gx, gy = p['gear'][0] * W, (1 - p['gear'][1]) * Hh
             gr = max(60.0, 1.15 * math.hypot(p['gear_e'][0] * W - gx, (1 - p['gear_e'][1]) * Hh - gy))
             ring_pts = [(gx + gr * math.cos(a / 48 * 2 * math.pi), gy + gr * math.sin(a / 48 * 2 * math.pi)) for a in range(49)]
             dashed(cv, ring_pts, f)
-            place(cv, ARR_R if f < c0 else ARR_L, gx, min(Hh - 420, gy + gr + 90), f, o0 if f < c0 else c0, (o1 if f < c0 else c1) + 8, rot=0, wobble=0.3, intro=5)
+            place(cv, ARR_R, gx, min(Hh - 420, gy + gr + 90), f, o0, o1 + 8, rot=0, wobble=0.3, intro=5)
+        place(cv, ARR_L, W / 2, 1460, f, c0, c1 + 8, rot=0, wobble=0.3, intro=5)
         place(cv, T1, W / 2, 330, f, 3, 76, rot=-2, wobble=0.6)
         place(cv, C0, W / 2, 1640, f, 12, 74, rot=1.5, wobble=0.8)
         place(cv, C1, W / 2, 1640, f, det - 4, o0 + 2, rot=-1.4, wobble=0.8, intro=5)
