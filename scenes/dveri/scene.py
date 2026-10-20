@@ -132,7 +132,7 @@ F_ON, F_OFF = TL['detect'], TL['close1']
 kled(1, BLUE, 6); kled(F_ON - 1, BLUE, 6); kled(F_ON, GREENL, 14); kled(F_OFF, GREENL, 14); kled(F_OFF + 1, BLUE, 6)
 gl = bpy.data.lights.new('ledglow', 'POINT'); gl.shadow_soft_size = 0.3
 glo = bpy.data.objects.new('ledglow', gl); bpy.context.collection.objects.link(glo); glo.location = LED + Vector((0, 0, 0.6))
-for f, colr, e in ((1, '#2F7BFF', 15), (F_ON - 1, '#2F7BFF', 15), (F_ON, '#33E05A', 90), (F_OFF, '#33E05A', 90), (F_OFF + 1, '#2F7BFF', 15)):
+for f, colr, e in ((1, '#2F7BFF', 15), (F_ON - 1, '#2F7BFF', 15), (F_ON, '#33E05A', 40), (F_OFF, '#33E05A', 40), (F_OFF + 1, '#2F7BFF', 15)):
     gl.color = lin(colr)[:3]; gl.keyframe_insert('color', frame=f)
     gl.energy = e; gl.keyframe_insert('energy', frame=f)
 def fcurves(idb):
@@ -298,16 +298,16 @@ bpy.context.collection.objects.link(cam); scn.camera = cam
 tgt = empty('cam_target', (0, 0, 0))
 c = cam.constraints.new('TRACK_TO'); c.target = tgt; c.track_axis = 'TRACK_NEGATIVE_Z'; c.up_axis = 'UP_Y'
 cam_d.sensor_width = 36
-cam_d.dof.use_dof = True; cam_d.dof.aperture_fstop = 4.0
+cam_d.dof.use_dof = True; cam_d.dof.aperture_fstop = 5.6
 SHOT = {   # камера, цель, объектив, точка фокуса
     'hero':   ((-6.0, -29.0, 11.5), (-0.5, 1.0, 3.6), 45, 'door'),
-    'sensor': ((7.0, -19.0, 10.0), (-2.6, -2.0, 5.0), 50, 'sensor'),
+    'sensor': ((6.0, -21.0, 10.0), (-3.4, -3.4, 5.0), 48, 'sensor'),
     'mech':   ((15.5, -8.0, 7.8), (7.5, -0.5, 4.3), 55, 'rack'),
     'open':   ((-3.0, -26.0, 7.5), (0.0, 0.0, 3.0), 45, 'door'),
     'mech2':  ((16.5, -4.5, 6.8), (8.0, -0.5, 4.2), 60, 'rack'),
     'end':    ((6.0, -31.0, 13.0), (-0.5, 1.0, 3.8), 45, 'door'),
 }
-FOCUS = {'door': Vector((-3.0, -1.0, 2.5)), 'sensor': SENSOR_FRONT, 'gear': GEAR_C + Vector((0, -0.5, 0)),
+FOCUS = {'door': Vector((-3.0, -1.0, 2.5)), 'sensor': (SENSOR_FRONT + PALM_AT) / 2, 'gear': GEAR_C + Vector((0, -0.5, 0)),
          'rack': Vector((9.0, -0.5, 4.5))}
 SEQ = TL['shots']; BLEND = TL['blend']
 def shot_at(f):
@@ -341,7 +341,7 @@ cy.use_denoising = True; cy.denoiser = 'OPENIMAGEDENOISE'
 cy.max_bounces = 6; cy.diffuse_bounces = 3; cy.glossy_bounces = 2
 cy.transmission_bounces = 4; cy.transparent_max_bounces = 4
 r.use_persistent_data = True
-r.use_motion_blur = True; r.motion_blur_shutter = 0.4
+r.use_motion_blur = True; r.motion_blur_shutter = 0.2
 scn.view_settings.view_transform = 'AgX'
 try:
     scn.view_settings.look = 'AgX - Medium High Contrast'
