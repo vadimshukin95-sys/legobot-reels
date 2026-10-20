@@ -188,7 +188,7 @@ def hand():
         cap(b0, b1, 0.78); cap(b1, b2, 0.7)
     cap((-1.35, -0.3, -1.9), (-2.55, -0.85, -3.1), 0.85)
     h = bpy.data.objects.new('hand_mesh', mb); bpy.context.collection.objects.link(h); h.parent = root
-    mb.materials.append(mat('skin', '#E9B996', 0.48, coat=0.05, sss=0.35))
+    mb.materials.append(mat('skin', '#F2C9A8', 0.45, coat=0.05, sss=0.25))
     return root
 HAND = hand()
 HSC = 0.6
@@ -199,7 +199,7 @@ def hand_rot(sleeve_dir):
     x = y.cross(z)
     return Matrix((x, y, z)).transposed()
 SLEEVE = Vector((-0.95, -0.55, -0.42))
-PALM_AT = SENSOR_FRONT + Vector((-0.6, -5.0, -0.4))
+PALM_AT = SENSOR_FRONT + Vector((-1.0, -4.2, -0.8))
 OUT = Vector((-16, -6, -2))
 def kh(f, palm, sleeve=SLEEVE):
     Rm = hand_rot(sleeve)
@@ -298,17 +298,17 @@ bpy.context.collection.objects.link(cam); scn.camera = cam
 tgt = empty('cam_target', (0, 0, 0))
 c = cam.constraints.new('TRACK_TO'); c.target = tgt; c.track_axis = 'TRACK_NEGATIVE_Z'; c.up_axis = 'UP_Y'
 cam_d.sensor_width = 36
-cam_d.dof.use_dof = True; cam_d.dof.aperture_fstop = 2.8
+cam_d.dof.use_dof = True; cam_d.dof.aperture_fstop = 4.0
 SHOT = {   # камера, цель, объектив, точка фокуса
     'hero':   ((-6.0, -29.0, 11.5), (-0.5, 1.0, 3.6), 45, 'door'),
     'sensor': ((7.0, -19.0, 10.0), (-2.6, -2.0, 5.0), 50, 'sensor'),
-    'mech':   ((-10.5, 2.6, 7.4), (2.0, -0.5, 4.9), 60, 'gear'),
+    'mech':   ((15.5, -8.0, 7.8), (7.5, -0.5, 4.3), 55, 'rack'),
     'open':   ((-3.0, -26.0, 7.5), (0.0, 0.0, 3.0), 45, 'door'),
-    'mech2':  ((17.0, -6.0, 7.5), (8.0, -0.5, 4.2), 55, 'rack'),
+    'mech2':  ((16.5, -4.5, 6.8), (8.0, -0.5, 4.2), 60, 'rack'),
     'end':    ((6.0, -31.0, 13.0), (-0.5, 1.0, 3.8), 45, 'door'),
 }
 FOCUS = {'door': Vector((-3.0, -1.0, 2.5)), 'sensor': SENSOR_FRONT, 'gear': GEAR_C + Vector((0, -0.5, 0)),
-         'rack': Vector((7.5, -0.5, 4.5))}
+         'rack': Vector((9.0, -0.5, 4.5))}
 SEQ = TL['shots']; BLEND = TL['blend']
 def shot_at(f):
     cur = SEQ[0][1]; w = 1.0; prev = cur
