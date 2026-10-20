@@ -132,6 +132,7 @@ F_ON, F_OFF = TL['detect'], TL['close1']
 kled(1, BLUE, 6); kled(F_ON - 1, BLUE, 6); kled(F_ON, GREENL, 14); kled(F_OFF, GREENL, 14); kled(F_OFF + 1, BLUE, 6)
 gl = bpy.data.lights.new('ledglow', 'POINT'); gl.shadow_soft_size = 0.3
 glo = bpy.data.objects.new('ledglow', gl); bpy.context.collection.objects.link(glo); glo.location = LED + Vector((0, 0, 0.6))
+glo.visible_glossy = False
 for f, colr, e in ((1, '#2F7BFF', 15), (F_ON - 1, '#2F7BFF', 15), (F_ON, '#33E05A', 40), (F_OFF, '#33E05A', 40), (F_OFF + 1, '#2F7BFF', 15)):
     gl.color = lin(colr)[:3]; gl.keyframe_insert('color', frame=f)
     gl.energy = e; gl.keyframe_insert('energy', frame=f)
@@ -191,6 +192,11 @@ def hand():
     mb.materials.append(mat('skin', '#F2C9A8', 0.45, coat=0.05, sss=0.25))
     return root
 HAND = hand()
+for _o in [HAND] + list(HAND.children):          # метаболы + размытие движения дают «волоски» — выключаем
+    try:
+        _o.cycles.use_motion_blur = False
+    except Exception:
+        pass
 HSC = 0.6
 PALM_LOCAL = Vector((0, 0, -3.4)) * HSC
 def hand_rot(sleeve_dir):
