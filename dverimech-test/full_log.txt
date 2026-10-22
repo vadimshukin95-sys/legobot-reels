@@ -1,0 +1,11 @@
+<string>:37: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/scene.py:84: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  CABLE_M = bpy.data.materials.new('cable'); CABLE_M.use_nodes = True
+/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/scene.py:212: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  m = bpy.data.materials.new('oak'); m.use_nodes = True
+model bbox (-8.0, -2.0, -0.4) (12.0, 8.0, 7.4) gear (2.0, 0.0, 5.099999904632568)
+Traceback (most recent call last):
+  File "/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/scene.py", line 235, in <module>
+    WALL = mat('wall', '#E8E3DA', 0.9)
+           ^^^
+NameError: name 'mat' is not defined. Did you mean: 'math'?

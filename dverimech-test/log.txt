@@ -1,0 +1,4 @@
+model bbox (-8.0, -2.0, -0.4) (12.0, 8.0, 7.4) gear (2.0, 0.0, 5.099999904632568)
+Traceback (most recent call last):
+  File "/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/scene.py", line 235, in <module>
+NameError: name 'mat' is not defined. Did you mean: 'math'?
