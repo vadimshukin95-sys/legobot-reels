@@ -200,6 +200,13 @@ for g in GH.values():
         for kp in fc.keyframe_points:
             kp.interpolation = 'BEZIER'
 
+def mat(name, hexv, rough=0.5, coat=0.0):
+    m = bpy.data.materials.new(name); m.use_nodes = True
+    bs = m.node_tree.nodes['Principled BSDF']
+    bs.inputs['Base Color'].default_value = lin(hexv); bs.inputs['Roughness'].default_value = rough
+    bs.inputs['Coat Weight'].default_value = coat
+    return m
+
 # ------------------------------------------------ кабинет: дубовый стол, стена, окно слева, полка с наборами
 def box(name, x0, x1, y0, y1, z0, z1, m, bevel=0.0):
     bpy.ops.mesh.primitive_cube_add(size=1, location=((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2))
