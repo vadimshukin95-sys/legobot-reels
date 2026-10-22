@@ -1,0 +1,24 @@
+{
+ "frames": 420,
+ "xray0": 40,
+ "xray1": 64,
+ "open0": 86,
+ "open1": 182,
+ "close0": 236,
+ "close1": 332,
+ "xray2": 334,
+ "xray3": 354,
+ "end": 346,
+ "travel": 6.0,
+ "shots": [
+  [1, "hero"],
+  [52, "front"],
+  [184, "side"],
+  [232, "top"],
+  [338, "end"]
+ ],
+ "blend": 22,
+ "cap_style": "pill",
+ "cap_palette": "pastel",
+ "title_font": "nunito"
+}

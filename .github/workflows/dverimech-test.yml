@@ -1,0 +1,52 @@
+name: Test frames — двери супермаркета, механизм
+
+# Пробные кадры: пуш в ветку scene-dveri с изменением scenes/dverimech/TEST (список кадров внутри)
+on:
+  push:
+    branches: [scene-dveri]
+    paths: ["scenes/dverimech/TEST"]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      LDRAW_DIR: ${{ github.workspace }}/ldraw
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: System libraries for headless Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libegl1 libgl1 libxi6 libxkbcommon0 libsm6 libxrender1 libxxf86vm1 libxfixes3 > /dev/null
+      - run: pip install -q bpy==5.2.2 pillow
+      - name: Oak texture (Poly Haven, CC0)
+        run: |
+          mkdir -p scenes/dverimech/tex
+          curl -sSL -f -o scenes/dverimech/tex/oak_veneer_01_diff_2k.jpg https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/oak_veneer_01/oak_veneer_01_diff_2k.jpg || echo "no texture, procedural wood"
+      - name: Render test frames
+        run: |
+          FR=$(head -1 scenes/dverimech/TEST)
+          python scenes/dverimech/scene.py test "$FR" 540 960 10 2>&1 | grep -E "bbox|Saved|Traceback|  File|Error" || true
+          ls scenes/dverimech/frames
+          for f in scenes/dverimech/frames/f*.png; do python -c "from PIL import Image;import sys;Image.open(sys.argv[1]).resize((1080,1920)).save(sys.argv[1])" "$f"; done
+          OVL_OUT_DIR=out python - <<'PY'
+          import os, subprocess
+          fr = open('scenes/dverimech/TEST').readline().strip().split(',')
+          for f in fr: subprocess.run(['python', 'scenes/dverimech/overlay.py', f, f], check=True)
+          PY
+      - name: Publish to stills branch
+        env:
+          REPO: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
+        run: |
+          rm -rf /tmp/st
+          git clone -q --depth 1 --branch stills "$REPO" /tmp/st
+          rm -rf /tmp/st/dverimech-test && mkdir -p /tmp/st/dverimech-test
+          cp scenes/dverimech/frames/*.png scenes/dverimech/out/*.png /tmp/st/dverimech-test/
+          cd /tmp/st && git -c user.name=github-actions -c user.email=actions@github.com add -A \
+            && git -c user.name=github-actions -c user.email=actions@github.com commit -q -m "dverimech test frames" && git push -q origin stills
