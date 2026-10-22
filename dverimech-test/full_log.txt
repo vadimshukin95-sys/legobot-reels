@@ -1,11 +1,19 @@
 <string>:37: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
 /home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/scene.py:84: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
   CABLE_M = bpy.data.materials.new('cable'); CABLE_M.use_nodes = True
-/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/scene.py:212: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/scene.py:219: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
   m = bpy.data.materials.new('oak'); m.use_nodes = True
+/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/scene.py:204: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  m = bpy.data.materials.new(name); m.use_nodes = True
+/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/scene.py:246: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  WIN = bpy.data.materials.new('window'); WIN.use_nodes = True
+/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/scene.py:271: DeprecationWarning: 'World.use_nodes' is expected to be removed in Blender 6.0
+  world = bpy.data.worlds.new('w'); scn.world = world; world.use_nodes = True
+00:02.173  cycles           | WARNING CUEW initialization failed: Error opening the library
+00:17.980  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/frames/f0030.png'
+00:45.427  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/frames/f0100.png'
+01:12.938  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/frames/f0140.png'
+01:34.372  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/frames/f0205.png'
+02:00.154  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/frames/f0285.png'
+02:14.373  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/frames/f0400.png'
 model bbox (-8.0, -2.0, -0.4) (12.0, 8.0, 7.4) gear (2.0, 0.0, 5.099999904632568)
-Traceback (most recent call last):
-  File "/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/scene.py", line 235, in <module>
-    WALL = mat('wall', '#E8E3DA', 0.9)
-           ^^^
-NameError: name 'mat' is not defined. Did you mean: 'math'?

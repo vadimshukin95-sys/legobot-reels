@@ -1,4 +1,8 @@
+00:02.173  cycles           | WARNING CUEW initialization failed: Error opening the library
+00:17.980  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/frames/f0030.png'
+00:45.427  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/frames/f0100.png'
+01:12.938  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/frames/f0140.png'
+01:34.372  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/frames/f0205.png'
+02:00.154  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/frames/f0285.png'
+02:14.373  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/frames/f0400.png'
 model bbox (-8.0, -2.0, -0.4) (12.0, 8.0, 7.4) gear (2.0, 0.0, 5.099999904632568)
-Traceback (most recent call last):
-  File "/home/runner/work/legobot-reels/legobot-reels/scenes/dverimech/scene.py", line 235, in <module>
-NameError: name 'mat' is not defined. Did you mean: 'math'?
