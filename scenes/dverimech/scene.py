@@ -175,7 +175,7 @@ def ghost_mat(m):
     gb.inputs['Coat Weight'].default_value = 0.3
     tr = N.new('ShaderNodeBsdfTransparent'); gm = N.new('ShaderNodeMixShader')
     lw = N.new('ShaderNodeLayerWeight'); lw.inputs['Blend'].default_value = 0.35
-    mr = N.new('ShaderNodeMapRange'); mr.inputs['To Min'].default_value = 0.05; mr.inputs['To Max'].default_value = 0.34
+    mr = N.new('ShaderNodeMapRange'); mr.inputs['To Min'].default_value = 0.015; mr.inputs['To Max'].default_value = 0.16
     Lk.new(lw.outputs['Facing'], mr.inputs['Value']); Lk.new(mr.outputs['Result'], gm.inputs['Fac'])
     Lk.new(tr.outputs['BSDF'], gm.inputs[1]); Lk.new(gb.outputs['BSDF'], gm.inputs[2])
     mx = N.new('ShaderNodeMixShader')                       # 0 — настоящий пластик, 1 — рентген
@@ -293,9 +293,9 @@ cam_d.sensor_width = 36
 cam_d.dof.use_dof = True; cam_d.dof.aperture_fstop = 5.6
 SHOT = {   # камера, цель, объектив, точка фокуса
     'hero':   ((-6.0, -29.0, 11.5), (-0.5, 1.0, 3.6), 45, 'door'),
-    'front':  ((3.6, -13.0, 7.0), (2.0, -0.5, 4.6), 70, 'gear'),
+    'front':  ((2.6, -17.0, 6.0), (2.4, -0.5, 4.7), 52, 'gear'),
     'side':   ((15.5, -8.0, 7.6), (7.0, -0.5, 4.4), 58, 'rack'),
-    'top':    ((5.0, -10.0, 13.5), (2.0, -0.4, 4.6), 62, 'gear'),
+    'top':    ((-1.5, -16.0, 9.5), (1.6, -0.5, 4.5), 50, 'gear'),
     'end':    ((6.0, -31.0, 13.0), (-0.5, 1.0, 3.8), 45, 'door'),
 }
 FOCUS = {'door': Vector((-3.0, -1.0, 2.5)), 'gear': GEAR_C + Vector((0, -0.5, 0)),
@@ -330,7 +330,7 @@ cy.device = 'CPU'
 cy.use_adaptive_sampling = True; cy.adaptive_threshold = 0.04
 cy.use_denoising = True; cy.denoiser = 'OPENIMAGEDENOISE'
 cy.max_bounces = 6; cy.diffuse_bounces = 3; cy.glossy_bounces = 2
-cy.transmission_bounces = 4; cy.transparent_max_bounces = 4
+cy.transmission_bounces = 4; cy.transparent_max_bounces = 48
 r.use_persistent_data = True
 r.use_motion_blur = True; r.motion_blur_shutter = 0.2
 scn.view_settings.view_transform = 'AgX'
