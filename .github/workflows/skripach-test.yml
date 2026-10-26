@@ -1,0 +1,55 @@
+name: Test frames — «Скрипач»
+
+# Пробные кадры: пуш в ветку scene-skripach с изменением scenes/skripach/TEST (список кадров внутри)
+on:
+  push:
+    branches: [scene-skripach]
+    paths: ["scenes/skripach/TEST"]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      LDRAW_DIR: ${{ github.workspace }}/ldraw
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: System libraries for headless Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libegl1 libgl1 libxi6 libxkbcommon0 libsm6 libxrender1 libxxf86vm1 libxfixes3 > /dev/null
+      - run: pip install -q bpy==5.2.2 pillow
+      - name: Oak texture (Poly Haven, CC0)
+        run: |
+          mkdir -p scenes/skripach/tex
+          curl -sSL -f -o scenes/skripach/tex/oak_veneer_01_diff_2k.jpg https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/oak_veneer_01/oak_veneer_01_diff_2k.jpg || echo "no texture, procedural wood"
+      - name: Render test frames
+        run: |
+          FR=$(head -1 scenes/skripach/TEST)
+          mkdir -p scenes/skripach/frames scenes/skripach/out
+          python scenes/skripach/scene.py test "$FR" 540 960 10 > /tmp/log.txt 2>&1 || true
+          grep -E "bbox|Saved|Traceback|  File|Error" /tmp/log.txt | tail -40 > scenes/skripach/out/log.txt || true
+          ls scenes/skripach/frames
+          for f in scenes/skripach/frames/f*.png; do python -c "from PIL import Image;import sys;Image.open(sys.argv[1]).resize((1080,1920)).save(sys.argv[1])" "$f"; done
+          OVL_OUT_DIR=out python - <<'PY'
+          import os, subprocess
+          fr = open('scenes/skripach/TEST').readline().strip().split(',')
+          for f in fr: subprocess.run(['python', 'scenes/skripach/overlay.py', f, f], check=True)
+          PY
+      - name: Publish to stills branch
+        if: always()
+        env:
+          REPO: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
+        run: |
+          rm -rf /tmp/st
+          git clone -q --depth 1 --branch stills "$REPO" /tmp/st
+          rm -rf /tmp/st/skripach-test && mkdir -p /tmp/st/skripach-test
+          cp scenes/skripach/frames/*.png scenes/skripach/out/* /tmp/st/skripach-test/ 2>/dev/null || true; cp /tmp/log.txt /tmp/st/skripach-test/full_log.txt 2>/dev/null || true
+          cd /tmp/st && git -c user.name=github-actions -c user.email=actions@github.com add -A \
+            && git -c user.name=github-actions -c user.email=actions@github.com commit -q -m "skripach test frames" && git push -q origin stills

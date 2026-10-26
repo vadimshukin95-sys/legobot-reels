@@ -1,0 +1,17 @@
+{
+ "frames": 528,
+ "speed": [[1, 0.5], [96, 0.5], [120, 0.25], [236, 0.25], [252, 0.2], [352, 0.2], [368, 0.5], [528, 0.5]],
+ "shots": [
+  [1, "hero"],
+  [70, "orbit"],
+  [116, "gears"],
+  [236, "crank"],
+  [356, "wide"],
+  [430, "end"]
+ ],
+ "blend": 26,
+ "end": 432,
+ "cap_style": "pill",
+ "cap_palette": "pastel",
+ "title_font": "nunito"
+}
