@@ -328,8 +328,8 @@ def write_proj(frames):
                         for a in [2 * math.pi * k / 40 for k in range(41)]],
              'hand': pr(b((HX, HY, ZB - 12)))}
         c24 = Vector((XK, YK, -30.0)); c8 = Vector((XK, -30.0, -30.0))
-        d['arc24'] = [pr(b(c24 + rz(-(th + t)) @ Vector((40.0, 0, 0)))) for t in range(225, 321, 5)]
-        d['arc8'] = [pr(b(c8 + rz(3 * (th + t)) @ Vector((17.0, 0, 0)))) for t in range(10, 91, 4)]
+        d['arc24'] = [pr(b(c24 + rz(-t) @ Vector((40.0, 0, 0)))) for t in range(40, 141, 5)]      # над 24z, по ходу вращения
+        d['arc8'] = [pr(b(c8 + rz(t) @ Vector((17.0, 0, 0)))) for t in range(20, 161, 8)]          # под 8z, навстречу
         res[f] = d
     old = {}
     pj = os.path.join(HERE, 'proj.json')
