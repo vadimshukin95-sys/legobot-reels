@@ -11,5 +11,8 @@
   WIN = bpy.data.materials.new('window'); WIN.use_nodes = True
 /home/runner/work/legobot-reels/legobot-reels/scenes/skripach/scene.py:239: DeprecationWarning: 'World.use_nodes' is expected to be removed in Blender 6.0
   world = bpy.data.worlds.new('w'); scn.world = world; world.use_nodes = True
-00:02.412  cycles           | WARNING CUEW initialization failed: Error opening the library
-00:11.860  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/skripach/frames/f0150.png'
+00:02.702  cycles           | WARNING CUEW initialization failed: Error opening the library
+00:22.814  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/skripach/frames/f0150.png'
+00:42.594  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/skripach/frames/f0200.png'
+model bbox (-4.32, -4.0, -0.8) (7.0, 12.0, 11.2)
+motor back (5.0, 5.0, 1.5) hub back (1.0, 11.0, 2.6)

@@ -1,0 +1,4 @@
+00:02.702  cycles           | WARNING CUEW initialization failed: Error opening the library
+00:22.814  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/skripach/frames/f0150.png'
+00:42.594  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/skripach/frames/f0200.png'
+model bbox (-4.32, -4.0, -0.8) (7.0, 12.0, 11.2)
