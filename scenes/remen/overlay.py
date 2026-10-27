@@ -127,7 +127,7 @@ def main(s, e):
             continue
         H.place(cv, C_HOOK, W / 2, 300, f, *CAP['hook'], rot=-1.5, wobble=0.6)
         H.place(cv, C_OPEN, W / 2, 210, f, *CAP['open'], rot=1.2, wobble=0.5)
-        H.place(cv, C_TWIST, W / 2, 960, f, *CAP['twist'], rot=-2, wobble=0.8)
+        H.place(cv, C_TWIST, W / 2, 210, f, *CAP['twist'], rot=-2, wobble=0.8)   # сверху, чтобы не закрывать перекрест ремня
         H.place(cv, C_CROSS, W / 2, 210, f, *CAP['cross'], rot=-1.2, wobble=0.5)
         H.place(cv, C_SUM, W / 2, 300, f, *CAP['sum'], rot=1.5, wobble=0.6)
         H.place(cv, LOGO, W / 2, 470, f, END + 4, 999, rot=-3, wobble=1.0, intro=9)
