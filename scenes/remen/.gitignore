@@ -1,0 +1,7 @@
+frames/
+out/
+test/
+inline/
+__pycache__/
+proj.json
+clean/
