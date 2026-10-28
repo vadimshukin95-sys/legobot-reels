@@ -1,0 +1,9 @@
+{
+ "models": {
+  "kurer": {"at": [-360, -60], "yaw": -60},
+  "elka": {"at": [0, 180], "yaw": 20},
+  "skripach": {"at": [360, -60], "yaw": 25}
+ },
+ "plinth": {"rx": 25, "ry": 14, "h": 0.8},
+ "camera": {"target": [0, 1.5, 4.6], "dist": 80, "elev": 16, "swing": 10, "lens": 52}
+}
