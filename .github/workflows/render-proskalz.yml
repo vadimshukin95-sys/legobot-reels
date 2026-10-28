@@ -1,0 +1,115 @@
+name: Render reel — «Ремень проскальзывает»
+
+# Полный рендер: пуш в ветку scene-proskalz с изменением scenes/proskalz/RENDER (первая строка — сэмплы)
+on:
+  push:
+    branches: [scene-proskalz]
+    paths: ["scenes/proskalz/RENDER"]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: reel-proskalz
+  cancel-in-progress: true
+
+env:
+  SCENE: scenes/proskalz
+  FRAME_COUNT: "384"
+  TOTAL: "480"
+  CHUNKS: "16"
+  WIDTH: "1080"
+  HEIGHT: "1920"
+
+jobs:
+  render:
+    name: frames ${{ matrix.chunk }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    env:
+      LDRAW_DIR: ${{ github.workspace }}/ldraw
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: System libraries for headless Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libegl1 libgl1 libxi6 libxkbcommon0 libsm6 libxrender1 libxxf86vm1 libxfixes3 > /dev/null
+      - run: pip install -q bpy==5.2.2 pillow numpy
+      - name: Render frames
+        run: |
+          SAMPLES=$(head -1 $SCENE/RENDER)
+          PER=$(( (FRAME_COUNT + CHUNKS - 1) / CHUNKS ))
+          S=$(( ${{ matrix.chunk }} * PER + 1 ))
+          E=$(( S + PER - 1 )); [ "$E" -gt "$FRAME_COUNT" ] && E=$FRAME_COUNT
+          echo "S=$S" >> "$GITHUB_ENV"; echo "E=$E" >> "$GITHUB_ENV"
+          python "$SCENE/scene.py" anim "$S" "$E" "$WIDTH" "$HEIGHT" "$SAMPLES" 2>&1 | grep -E "Saved|Traceback|  File|Error" || true
+          test "$(ls $SCENE/frames/*.png | wc -l)" -eq $(( E - S + 1 ))
+      - name: Titles, arrows, clean version
+        run: |
+          python "$SCENE/overlay.py" "$S" "$E"
+          CLEAN=1 OVL_OUT_DIR=clean python "$SCENE/overlay.py" "$S" "$E"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proskalz-${{ matrix.chunk }}
+          path: |
+            ${{ env.SCENE }}/out/*.png
+            ${{ env.SCENE }}/clean/*.png
+            ${{ env.SCENE }}/frames/f0384.png
+          retention-days: 2
+
+  assemble:
+    needs: render
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -q pillow numpy scipy
+      - name: Sound (synthesized)
+        run: python "$SCENE/audio.py"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: proskalz-*
+          merge-multiple: true
+          path: dl
+      - name: Final card and MP4
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          mkdir -p o c f
+          find dl/out -name 'o*.png' -exec mv {} o/ \;
+          find dl/clean -name 'o*.png' -exec mv {} c/ \;
+          find dl -name 'f0384.png' -exec mv {} f/ \;
+          test "$(ls o | wc -l)" -eq "$FRAME_COUNT"
+          OVL_FRAMES_DIR="$GITHUB_WORKSPACE/f" OVL_OUT_DIR="$GITHUB_WORKSPACE/o" python "$SCENE/overlay.py" $(( FRAME_COUNT + 1 )) "$TOTAL"
+          test "$(ls o | wc -l)" -eq "$TOTAL"
+          ffmpeg -loglevel error -framerate 24 -pattern_type glob -i 'o/o*.png' -i "$SCENE/audio.wav" \
+            -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -profile:v high -r 24 \
+            -c:a aac -b:a 192k -shortest -movflags +faststart proskalz_wedo2_reel.mp4
+          ffmpeg -loglevel error -framerate 24 -pattern_type glob -i 'c/o*.png' \
+            -c:v libx264 -crf 18 -pix_fmt yuv420p -movflags +faststart proskalz_wedo2_clean.mp4
+          cp c/o0160.png proskalz_kadr.png; cp c/o0030.png proskalz_kadr_obshiy.png; cp o/o0460.png proskalz_kadr_end.png
+          ls -la *.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: video-proskalz
+          path: "*.mp4"
+          retention-days: 30
+      - name: Publish to stills branch
+        env:
+          REPO: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
+        run: |
+          git clone -q --depth 1 --branch stills "$REPO" /tmp/st
+          mkdir -p /tmp/st/proskalz-reel && cp *.mp4 proskalz_kadr*.png /tmp/st/proskalz-reel/
+          cd /tmp/st && git -c user.name=github-actions -c user.email=actions@github.com add -A \
+            && git -c user.name=github-actions -c user.email=actions@github.com commit -q -m "proskalz reel" && git push -q origin stills
