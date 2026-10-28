@@ -1,0 +1,234 @@
+name: Render hero — «Три модели WeDo» для legobot.ru
+
+# Запуск вручную: Actions → Render hero → Run workflow.
+# mode=test — несколько пробных кадров (≈10 минут), mode=anim — вся петля 24 с.
+# Результат кладётся в ветку renders-hero3 (папки test/ и video/).
+# Файлы моделей Ёлки и Скрипача хранятся в секретах MODEL_ELKA и MODEL_SKRIPACH (не в публичном репозитории).
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "test — пробные кадры, anim — весь ролик"
+        type: choice
+        options: [test, anim]
+        default: test
+      test_frames:
+        description: "Кадры для test (через запятую)"
+        default: "1,97,193,289"
+      samples:
+        description: "Сэмплы Cycles (с шумодавом хватает 10–14)"
+        default: "12"
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: hero3
+  cancel-in-progress: true
+
+env:
+  SCENE: scenes/hero3
+  FRAME_COUNT: "576"
+  CHUNKS: "24"
+  WIDTH: "1280"
+  HEIGHT: "800"
+
+jobs:
+  test:
+    if: ${{ inputs.mode == 'test' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      LDRAW_DIR: ${{ github.workspace }}/lib/ldraw
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - name: System libraries for headless Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libegl1 libgl1 libxi6 libxkbcommon0 libsm6 libxrender1 libxxf86vm1 libxfixes3 > /dev/null
+      - name: LDraw library (official + unofficial + repo parts)
+        run: |
+          mkdir -p lib && cd lib
+          curl -sSfL -o complete.zip https://library.ldraw.org/library/updates/complete.zip
+          unzip -q complete.zip
+          if curl -sSfL -o unf.zip https://library.ldraw.org/library/unofficial/ldrawunf.zip; then unzip -q -n unf.zip -d ldraw; fi
+          cp -r ../ldraw/* ldraw/
+      - name: Models (from repository secrets)
+        env:
+          MODEL_ELKA: ${{ secrets.MODEL_ELKA }}
+          MODEL_SKRIPACH: ${{ secrets.MODEL_SKRIPACH }}
+        run: |
+          mkdir -p $SCENE/models
+          printf '%s\n' "$MODEL_ELKA" > $SCENE/models/elka.mpd
+          printf '%s\n' "$MODEL_SKRIPACH" > $SCENE/models/skripach.ldr
+          test -s $SCENE/models/elka.mpd && test -s $SCENE/models/skripach.ldr
+      - name: Python packages
+        run: pip install -q bpy==5.2.2 pillow
+      - name: Write compose.py
+        run: |
+          cat > compose.py <<'PYEOF'
+          """Кладёт прозрачные кадры на фон первого экрана legobot.ru.
+          Края кадра — ровно цвет фона блока (#ECF8E3), к центру чуть светлее, чтобы видео не было видно как прямоугольник.
+            python compose.py <папка с f*.png> <папка вывода>"""
+          import sys, os, glob
+          from PIL import Image, ImageFilter
+
+          SRC, DST = sys.argv[1], sys.argv[2]
+          os.makedirs(DST, exist_ok=True)
+          EDGE = (236, 248, 227)            # фон блока на сайте
+          CENTRE = (250, 253, 246)
+          _bg = {}
+          def background(w, h):
+              if (w, h) not in _bg:
+                  g = Image.radial_gradient('L').resize((w, h), Image.BICUBIC)   # 0 в центре -> 255 к краям
+                  g = g.point(lambda v: min(255, int(v * 1.55)))                 # к краю кадра — уже чистый цвет фона
+                  a, b = Image.new('RGB', (w, h), CENTRE), Image.new('RGB', (w, h), EDGE)
+                  _bg[(w, h)] = Image.composite(b, a, g).filter(ImageFilter.GaussianBlur(2))
+              return _bg[(w, h)]
+
+          files = sorted(glob.glob(os.path.join(SRC, 'f*.png')))
+          for p in files:
+              im = Image.open(p).convert('RGBA')
+              out = background(*im.size).copy(); out.paste(im, (0, 0), im)
+              out.save(os.path.join(DST, 'o' + os.path.basename(p)[1:]))
+          print(len(files), 'frames composed')
+          PYEOF
+      - name: Render test frames
+        run: |
+          python "$SCENE/scene.py" test "${{ inputs.test_frames }}" "$WIDTH" "$HEIGHT" "${{ inputs.samples }}" 2>&1 | grep -E "Saved|Traceback|  File|Error" || true
+          ls $SCENE/frames
+          python compose.py "$SCENE/frames" out
+      - name: Publish to branch renders-hero3
+        run: mkdir -p pub/test && cp out/*.png pub/test/
+      - name: Push renders-hero3
+        env:
+          MSG: test
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd pub && git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q -b renders-hero3 && git add -A && git commit -qm "hero3 $MSG (run $GITHUB_RUN_ID)"
+          git push -qf "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" renders-hero3
+
+  render:
+    if: ${{ inputs.mode == 'anim' }}
+    name: frames ${{ matrix.chunk }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    env:
+      LDRAW_DIR: ${{ github.workspace }}/lib/ldraw
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - name: System libraries for headless Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libegl1 libgl1 libxi6 libxkbcommon0 libsm6 libxrender1 libxxf86vm1 libxfixes3 > /dev/null
+      - name: LDraw library (official + unofficial + repo parts)
+        run: |
+          mkdir -p lib && cd lib
+          curl -sSfL -o complete.zip https://library.ldraw.org/library/updates/complete.zip
+          unzip -q complete.zip
+          if curl -sSfL -o unf.zip https://library.ldraw.org/library/unofficial/ldrawunf.zip; then unzip -q -n unf.zip -d ldraw; fi
+          cp -r ../ldraw/* ldraw/
+      - name: Models (from repository secrets)
+        env:
+          MODEL_ELKA: ${{ secrets.MODEL_ELKA }}
+          MODEL_SKRIPACH: ${{ secrets.MODEL_SKRIPACH }}
+        run: |
+          mkdir -p $SCENE/models
+          printf '%s\n' "$MODEL_ELKA" > $SCENE/models/elka.mpd
+          printf '%s\n' "$MODEL_SKRIPACH" > $SCENE/models/skripach.ldr
+          test -s $SCENE/models/elka.mpd && test -s $SCENE/models/skripach.ldr
+      - name: Python packages
+        run: pip install -q bpy==5.2.2 pillow
+      - name: Render frames
+        run: |
+          PER=$(( (FRAME_COUNT + CHUNKS - 1) / CHUNKS ))
+          S=$(( ${{ matrix.chunk }} * PER + 1 ))
+          E=$(( S + PER - 1 )); [ "$E" -gt "$FRAME_COUNT" ] && E=$FRAME_COUNT
+          echo "frames $S..$E"
+          python "$SCENE/scene.py" anim "$S" "$E" "$WIDTH" "$HEIGHT" "${{ inputs.samples }}" 2>&1 | grep -E "Saved|Traceback|  File|Error" || true
+          test "$(ls $SCENE/frames/*.png | wc -l)" -eq $(( E - S + 1 ))
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hero3-${{ matrix.chunk }}
+          path: ${{ env.SCENE }}/frames/*.png
+          retention-days: 2
+
+  assemble:
+    needs: render
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: hero3-*
+          merge-multiple: true
+          path: frames
+      - name: Write compose.py
+        run: |
+          cat > compose.py <<'PYEOF'
+          """Кладёт прозрачные кадры на фон первого экрана legobot.ru.
+          Края кадра — ровно цвет фона блока (#ECF8E3), к центру чуть светлее, чтобы видео не было видно как прямоугольник.
+            python compose.py <папка с f*.png> <папка вывода>"""
+          import sys, os, glob
+          from PIL import Image, ImageFilter
+
+          SRC, DST = sys.argv[1], sys.argv[2]
+          os.makedirs(DST, exist_ok=True)
+          EDGE = (236, 248, 227)            # фон блока на сайте
+          CENTRE = (250, 253, 246)
+          _bg = {}
+          def background(w, h):
+              if (w, h) not in _bg:
+                  g = Image.radial_gradient('L').resize((w, h), Image.BICUBIC)   # 0 в центре -> 255 к краям
+                  g = g.point(lambda v: min(255, int(v * 1.55)))                 # к краю кадра — уже чистый цвет фона
+                  a, b = Image.new('RGB', (w, h), CENTRE), Image.new('RGB', (w, h), EDGE)
+                  _bg[(w, h)] = Image.composite(b, a, g).filter(ImageFilter.GaussianBlur(2))
+              return _bg[(w, h)]
+
+          files = sorted(glob.glob(os.path.join(SRC, 'f*.png')))
+          for p in files:
+              im = Image.open(p).convert('RGBA')
+              out = background(*im.size).copy(); out.paste(im, (0, 0), im)
+              out.save(os.path.join(DST, 'o' + os.path.basename(p)[1:]))
+          print(len(files), 'frames composed')
+          PYEOF
+      - name: Compose and encode
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          pip install -q pillow
+          test "$(ls frames/f*.png | wc -l)" -eq "$FRAME_COUNT"
+          python compose.py frames o
+          mkdir -p pub/video
+          ffmpeg -loglevel error -framerate 24 -pattern_type glob -i 'o/o*.png' -an \
+            -c:v libx264 -preset slow -crf 24 -pix_fmt yuv420p -profile:v high -movflags +faststart pub/video/legobot-hero.mp4
+          ffmpeg -loglevel error -framerate 24 -pattern_type glob -i 'o/o*.png' -an \
+            -c:v libvpx-vp9 -b:v 0 -crf 36 -row-mt 1 -pix_fmt yuv420p pub/video/legobot-hero.webm
+          ffmpeg -loglevel error -framerate 24 -pattern_type glob -i 'o/o*.png' -an -vf scale=640:-2 \
+            -c:v libx264 -preset slow -crf 26 -pix_fmt yuv420p -movflags +faststart pub/video/legobot-hero-640.mp4
+          python -c "from PIL import Image; Image.open('o/o0001.png').save('pub/video/legobot-hero-poster.webp', quality=82)"
+          ls -la pub/video
+      - name: Publish to branch renders-hero3
+        env:
+          MSG: video
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd pub && git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q -b renders-hero3 && git add -A && git commit -qm "hero3 $MSG (run $GITHUB_RUN_ID)"
+          git push -qf "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" renders-hero3
