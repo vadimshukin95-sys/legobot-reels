@@ -8,8 +8,8 @@
   [337, "wide_end"]
  ],
  "speed": [[1, 0.42], [480, 0.42]],
- "pencil": {"in": [36, 44], "out": [248, 262], "phi": 35, "y": 4.5, "r_out": 8.6, "r_in": 3.5},
- "stop": {"theta": -288.7, "recoil": 6, "restart": [262, 288]},
+ "pencil": {"in": [36, 44], "out": [248, 262], "phi": 35, "y": 4.5, "r_out": 8.6, "r_in": 2.8},
+ "stop": {"theta": -284.95, "recoil": 6, "restart": [262, 288]},
  "xray": [97, 240],
  "captions": {
   "hook": [52, 96],

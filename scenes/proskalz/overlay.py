@@ -144,9 +144,9 @@ def main(s, e):
         if clean:
             cv.convert('RGB').save(os.path.join(out_dir, f'o{f:04d}.png'), compress_level=1)
             continue
-        H.place(cv, C_HOOK, W / 2, 1640, f, *CAP['hook'], rot=-1.5, wobble=0.6)      # снизу: сверху идёт карандаш
+        H.place(cv, C_HOOK, W / 2, 300, f, *CAP['hook'], rot=-1.5, wobble=0.6)
         H.place(cv, C_SLIP, W / 2, 210, f, *CAP['slip'], rot=1.2, wobble=0.5)
-        H.place(cv, C_SUM, W / 2, 1640, f, *CAP['sum'], rot=1.5, wobble=0.6)
+        H.place(cv, C_SUM, W / 2, 300, f, *CAP['sum'], rot=1.5, wobble=0.6)
         H.place(cv, LOGO, W / 2, 470, f, END + 4, 999, rot=-3, wobble=1.0, intro=9)
         H.place(cv, T_END, W / 2, 900, f, END + 8, 999, rot=-2, wobble=0.6)
         H.place(cv, C_END, W / 2, 1120, f, END + 14, 999, rot=1.5, wobble=0.5)
