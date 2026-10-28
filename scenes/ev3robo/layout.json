@@ -46,8 +46,8 @@
     [7.3, 10.7]
   ],
   "camera": {
-    "target": [0, -3, 5],
-    "dist": 100,
+    "target": [0, 0, 5.5],
+    "dist": 92,
     "elev": 22,
     "azimuth": 0,
     "swing": 8,
