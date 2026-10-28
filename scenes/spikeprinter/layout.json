@@ -1,0 +1,16 @@
+{
+  "_": "Сцена «3D-принтер» (SPIKE Prime). Расстояния — LDU (1 шип = 20), углы — градусы, время — секунды петли 18 с.",
+  "model_center": [460, 48, 20],
+  "plinth": {"rx": 16, "ry": 19, "h": 0.8, "color": "#FCFBFF"},
+  "pen": {"axis": [350, 50], "tip_y": -126, "length": 460, "radius": 27, "color": "#3FC1C9", "white": "#F1F4F4"},
+  "print": {"center": [405, 50], "size": 48, "layers": 5, "layer_h": 6, "radius": 3.2, "color": "#2A2B2E"},
+  "paper": {"x": [330, 590], "z": [-40, 140]},
+  "raise": 20,
+  "lever_deg": 12,
+  "times": {
+    "move_in": [0.0, 1.4], "down": [1.0, 1.6], "press": [1.6, 1.9], "print": [1.9, 13.6],
+    "release": [13.6, 13.9], "up": [13.9, 14.5], "home": [14.5, 15.9], "settle": [16.4, 17.4], "fade": [17.0, 17.8]
+  },
+  "camera": {"target": [0, 0, 16.5], "dist": 105, "elev": 18, "azimuth": -55, "swing": 7, "lens": 50},
+  "world": "#F4F2FC"
+}
