@@ -1,4 +1,4 @@
-"""Видео-петля для первого экрана legobot.ru: три модели WeDo 2.0 на одной подставке.
+import ldr, json"""Видео-петля для первого экрана legobot.ru: три модели WeDo 2.0 на одной подставке.
 Робот-курьер шагает на месте, Ёлка-карусель вращается (червяк 1:24) и машет рукой фигурке,
 Скрипач водит смычком. Петля 24 с без шва: все механизмы делают целое число оборотов.
 Фон прозрачный (film_transparent + ловец теней) — цвет фона сайта подставляет compose.py.
@@ -10,7 +10,7 @@ import bpy, bmesh, math, sys, os
 from mathutils import Vector, Matrix
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'courier'))
-import ldr
+import ldr, json
 
 FPS = 24
 LOOP_S = 24
@@ -135,7 +135,11 @@ MODELS = {
         'bow': ([30, 31], (100, -90, -70)),
         'pivotc': ([32], (-60, -110, -70))}),
 }
-PLINTH_H = 0.8                                          # высота подставки, studs
+# расстановка, подставка и камера — в layout.json (правится без изменения кода)
+LAY = json.load(open(os.path.join(HERE, 'layout.json'), encoding='utf-8'))
+for k, v in LAY['models'].items():
+    MODELS[k]['at'], MODELS[k]['yaw'] = tuple(v['at']), v['yaw']
+PLINTH_H = LAY['plinth']['h']                           # высота подставки, studs
 G = {}                                                  # (модель, группа) -> empty
 LIFT = {}
 for key, cfg in MODELS.items():
@@ -225,7 +229,7 @@ def plinth(rx, ry, h, bevel):
         p.use_smooth = True
     o.data.materials.append(mat('plinth', '#F7FBF3', 0.55))
     return o
-PL = plinth(36, 20, PLINTH_H, 0.3)
+PL = plinth(LAY['plinth']['rx'], LAY['plinth']['ry'], PLINTH_H, 0.3)
 bpy.ops.mesh.primitive_plane_add(size=400, location=(0, 0, 0))
 floor = bpy.context.active_object; floor.name = 'shadow_catcher'; floor.is_shadow_catcher = True
 
@@ -236,15 +240,17 @@ world.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.6
 # ------------------------------------------------------------------ камера: медленный проезд по дуге, петля без шва
 cam_d = bpy.data.cameras.new('cam'); cam = bpy.data.objects.new('cam', cam_d)
 bpy.context.collection.objects.link(cam); scn.camera = cam
-tgt = empty('cam_target', (0, 2.0, 5.2))
+CAM = LAY['camera']
+tgt = empty('cam_target', tuple(CAM['target']))
 c = cam.constraints.new('TRACK_TO'); c.target = tgt; c.track_axis = 'TRACK_NEGATIVE_Z'; c.up_axis = 'UP_Y'
-cam_d.sensor_width = 36; cam_d.lens = 52
+cam_d.sensor_width = 36; cam_d.lens = CAM['lens']
 cam_d.dof.use_dof = True; cam_d.dof.focus_object = tgt; cam_d.dof.aperture_fstop = 5.6
-DIST, ELEV, SWING = 96.0, math.radians(17), math.radians(11)
+DIST, ELEV, SWING = CAM['dist'], math.radians(CAM['elev']), math.radians(CAM['swing'])
 for f in range(1, FRAMES + 1):
     u = math.sin(2 * math.pi * (f - 1) / FRAMES)
     az = SWING * u
-    cam.location = Vector((DIST * math.cos(ELEV) * math.sin(az), -DIST * math.cos(ELEV) * math.cos(az), 5.2 + DIST * math.sin(ELEV)))
+    T = Vector(CAM['target'])
+    cam.location = T + Vector((DIST * math.cos(ELEV) * math.sin(az), -DIST * math.cos(ELEV) * math.cos(az), DIST * math.sin(ELEV)))
     cam.keyframe_insert('location', frame=f)
 
 # ------------------------------------------------------------------ свет: мягкий дневной, тёплый ключ, холодная заливка
