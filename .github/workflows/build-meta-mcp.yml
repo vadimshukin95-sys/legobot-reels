@@ -1,0 +1,114 @@
+name: Build tool — Meta Insights MCP (read-only)
+
+# Сборка расширения Claude (.mcpb) из oliverames/meta-mcp-server на проверенном коммите.
+# Оставлены только инструменты чтения (readOnlyHint: true): страницы, Instagram, статистика.
+# Публикация, удаление, комментарии, директ, реклама, Threads, графики — не регистрируются.
+# Результат — ветка tools: meta-insights-readonly.mcpb
+on:
+  push:
+    branches: [tool-meta-mcp]
+    paths: [".github/workflows/build-meta-mcp.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Source at reviewed commit
+        run: |
+          git clone -q https://github.com/oliverames/meta-mcp-server.git src && cd src && git checkout -q 3fa449b
+      - name: Read-only patch
+        working-directory: src
+        run: |
+          python3 - <<'PY'
+          p = 'src/index.ts'; s = open(p).read()
+          s = s.replace('if (errorReportingEnabled()) instrumentToolErrors(server, captureToolError);\n',
+            'if (errorReportingEnabled()) instrumentToolErrors(server, captureToolError);\n'
+            'const _registerTool = server.registerTool.bind(server) as (...a: any[]) => any;\n'
+            '(server as any).registerTool = (name: string, config: any, cb: any) => {\n'
+            '  if (config?.annotations?.readOnlyHint !== true) return undefined;\n'
+            '  return _registerTool(name, config, cb);\n'
+            '};\n', 1)
+          assert '_registerTool' in s
+          for line in ['registerAdsTools(server, client);', 'registerAudiencesTools(server, client);',
+                       'registerThreadsTools(server, client);', 'registerAdLibraryTools(server, client);',
+                       'registerConversionTools(server, client);', 'registerChartTools(server);',
+                       'registerCommerceTools(server, client);']:
+              assert '\n' + line in s, line
+              s = s.replace('\n' + line, '\n// ' + line)
+          s = s.replace('resolveApiKey("META_ACCESS_TOKEN", "op://Development/Meta Access Token/credential");\n', '')
+          s = s.replace('resolveApiKey("THREADS_ACCESS_TOKEN", "op://Development/Threads Access Token/credential");\n', '')
+          open(p, 'w').write(s)
+          PY
+          grep -n "_registerTool\|^// register" src/index.ts
+      - name: Build
+        working-directory: src
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          npm prune --omit=dev
+          rm -rf node_modules/@sentry node_modules/@sentry-internal node_modules/@opentelemetry 2>/dev/null || true
+      - name: Check tools (без токена — только список)
+        working-directory: src
+        run: |
+          node -e "
+          const { spawn } = require('child_process');
+          const p = spawn('node', ['dist/index.js'], { env: { ...process.env, META_ACCESS_TOKEN: 'x' } });
+          let out = '';
+          p.stdout.on('data', d => { out += d; if (out.includes('\"tools\"')) { const m = JSON.parse(out.trim().split('\n').pop()); console.log(m.result.tools.length + ' tools:'); console.log(m.result.tools.map(t => t.name).join('\n')); p.kill(); } });
+          const send = o => p.stdin.write(JSON.stringify(o) + '\n');
+          send({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'ci', version: '1' } } });
+          setTimeout(() => { send({ jsonrpc: '2.0', method: 'notifications/initialized' }); out = ''; send({ jsonrpc: '2.0', id: 2, method: 'tools/list' }); }, 1500);
+          setTimeout(() => process.exit(0), 8000);
+          " | tee ../tools.txt
+      - name: Manifest and pack
+        working-directory: src
+        run: |
+          cat > manifest.json <<'JSON'
+          {
+            "manifest_version": "0.2",
+            "name": "meta-insights-readonly",
+            "display_name": "Meta Insights (только чтение)",
+            "version": "2.0.2",
+            "description": "Статистика Instagram и страниц Facebook через Graph API. Только чтение: публикация, удаление, комментарии, директ и реклама в этой сборке отключены.",
+            "author": { "name": "Oliver Ames; read-only сборка для LEGObot" },
+            "license": "MIT",
+            "icon": "assets/icon.png",
+            "server": {
+              "type": "node",
+              "entry_point": "dist/index.js",
+              "mcp_config": {
+                "command": "node",
+                "args": ["${__dirname}/dist/index.js"],
+                "env": { "META_ACCESS_TOKEN": "${user_config.meta_access_token}" }
+              }
+            },
+            "user_config": {
+              "meta_access_token": {
+                "type": "string",
+                "title": "Meta access token",
+                "description": "Долгоживущий токен пользователя с правами instagram_basic, instagram_manage_insights, pages_show_list, pages_read_engagement",
+                "sensitive": true,
+                "required": true
+              }
+            }
+          }
+          JSON
+          printf '/src/\n/docs/\n/tsconfig.json\n/vitest.config.ts\n/WORKLOG.md\n' > .mcpbignore
+          npx -y @anthropic-ai/mcpb@latest pack . ../meta-insights-readonly.mcpb
+          ls -la ../meta-insights-readonly.mcpb
+      - name: Publish to tools branch
+        env:
+          REPO: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
+        run: |
+          mkdir pub && cd pub && git init -q && git checkout -q -b tools
+          cp ../meta-insights-readonly.mcpb ../tools.txt .
+          git -c user.name=github-actions -c user.email=actions@github.com add -A
+          git -c user.name=github-actions -c user.email=actions@github.com commit -q -m "meta-insights-readonly.mcpb (oliverames/meta-mcp-server@3fa449b, read-only)"
+          git push -q -f "$REPO" tools
