@@ -1,9 +1,7 @@
-00:01.739  cycles           | WARNING CUEW initialization failed: Error opening the library
-00:19.031  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/proskalz/frames/f0030.png'
-00:36.081  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/proskalz/frames/f0046.png'
-00:53.118  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/proskalz/frames/f0052.png'
-01:16.785  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/proskalz/frames/f0150.png'
-01:33.720  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/proskalz/frames/f0256.png'
-01:50.759  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/proskalz/frames/f0300.png'
-02:07.825  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/proskalz/frames/f0360.png'
-model bbox (-11.0, -8.0, -0.03) (7.06, 8.0, 16.16)
+00:01.354  cycles           | WARNING CUEW initialization failed: Error opening the library
+00:15.233  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/proskalz/frames/f0046.png'
+00:28.813  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/proskalz/frames/f0052.png'
+00:42.325  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/proskalz/frames/f0060.png'
+01:00.845  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/proskalz/frames/f0150.png'
+01:14.464  render           | Saved: '/home/runner/work/legobot-reels/legobot-reels/scenes/proskalz/frames/f0360.png'
+model bbox (-11.0, -8.0, -0.03) (7.02, 8.0, 16.12)
