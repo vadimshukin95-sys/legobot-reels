@@ -195,7 +195,7 @@ cam_d = bpy.data.cameras.new('cam'); cam = bpy.data.objects.new('cam', cam_d)
 bpy.context.collection.objects.link(cam); scn.camera = cam
 cc = cam.constraints.new('TRACK_TO'); cc.target = tgt; cc.track_axis = 'TRACK_NEGATIVE_Z'; cc.up_axis = 'UP_Y'
 cam_d.sensor_width = 36; cam_d.lens = CAM['lens']
-cam_d.shift_x = CAM.get('shift_x', 0.0); cam_d.shift_y = -CAM.get('shift_y', 0.0)   # в layout: + сдвигает модель вниз
+cam_d.shift_x = CAM.get('shift_x', 0.0); cam_d.shift_y = CAM.get('shift_y', 0.0)    # + сдвигает модель влево / вниз
 DIST, ELEV, SWING = CAM['dist'], math.radians(CAM['elev']), math.radians(CAM['swing'])
 for f in range(1, FRAMES + 1):
     az = AZ0 + SWING * math.sin(2 * math.pi * (f - 1) / FRAMES)
