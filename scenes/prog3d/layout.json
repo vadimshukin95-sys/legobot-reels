@@ -8,7 +8,7 @@
  "plinth": {"rx": 30, "ry": 13, "h": 0.8, "color": "#FDFEFF"},
  "obstacle": {"at": [3, -7.8], "rot": 15},
  "robot": {"land": [11, -6], "pre_jump": [5.6, -7.6], "post_jump": [0.4, -7.9], "takeoff": [-7, -6.2]},
- "camera": {"target": [0, 2, 8.2], "dist": 88, "elev": 12, "lens": 50, "swing": 3, "azimuth": 0},
+ "camera": {"target": [0, 0, 6.8], "dist": 86, "elev": 17, "lens": 50, "swing": 3, "azimuth": 0},
  "world": "#E8F4F9",
  "light_scale": 0.8,
  "screen_light": 350
