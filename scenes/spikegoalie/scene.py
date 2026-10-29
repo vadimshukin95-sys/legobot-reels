@@ -81,6 +81,7 @@ def mat(name, hexv, rough=0.5, metal=0.0):
 
 def lmat(v):
     return Matrix(((v[3], v[4], v[5], v[0]), (v[6], v[7], v[8], v[1]), (v[9], v[10], v[11], v[2]), (0, 0, 0, 1)))
+ALIAS = {'68488c01.dat': '68488.dat'}                    # мотор без свёрнутого кабеля: хаба в модели нет
 PARTS = []                                               # (путь, деталь, цвет, матрица LDraw)
 def walk(lines, M, path, colour):
     k = -1
@@ -91,6 +92,7 @@ def walk(lines, M, path, colour):
         k += 1
         c = int(t[1]); c = colour if c == 16 else c
         name = ' '.join(t[14:]); W = M @ lmat(list(map(float, t[2:14])))
+        name = ALIAS.get(name.lower(), name)
         if name.lower() in files and not name.lower().endswith('.dat'):
             walk(files[name.lower()], W, f'{path}/{k}', c)
         else:
