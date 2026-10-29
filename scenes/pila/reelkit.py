@@ -141,6 +141,18 @@ def logo_round(path=None, size=200):
     return disk.resize((size, size), Image.LANCZOS)
 
 
+def soften_plate(pl, feather=110, solid=0.97):
+    """Тень с ловца теней плавно гаснет к краям плашки; сама модель (почти непрозрачная) не трогается."""
+    a = np.asarray(pl.split()[-1], float) / 255
+    h, w = a.shape
+    y = np.arange(h)[:, None]; x = np.arange(w)[None, :]
+    d = np.minimum(np.minimum(y, h - 1 - y), np.minimum(x, w - 1 - x)).astype(float)
+    m = np.clip(d / feather, 0, 1); m = m * m * (3 - 2 * m)
+    a2 = np.where(a >= solid, a, a * m)
+    out = pl.copy(); out.putalpha(Image.fromarray((a2 * 255).astype(np.uint8)))
+    return out
+
+
 def project(VP, pts, w, h):
     pts = np.atleast_2d(np.asarray(pts, float))
     hp = np.c_[pts, np.ones(len(pts))] @ np.asarray(VP).T

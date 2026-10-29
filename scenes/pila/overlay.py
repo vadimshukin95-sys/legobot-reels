@@ -133,7 +133,7 @@ def frame(i, plates):
             pl = Image.open(os.path.join(plates, f'f{i - TL.PLATE_FIRST + 1:04d}.png')).convert('RGBA')
             if pl.size != (TL.PLATE_W, TL.PLATE_H):
                 pl = pl.resize((TL.PLATE_W, TL.PLATE_H), Image.LANCZOS)
-            img.alpha_composite(pl, (0, TL.MY))
+            img.alpha_composite(K.soften_plate(pl), (0, TL.MY))
         overlays(img, t, th)
         draw_title(img, t)
         draw_caps(img, t)

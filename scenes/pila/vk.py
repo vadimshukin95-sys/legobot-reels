@@ -12,7 +12,7 @@ _tg = np.array(TL.CAM['target'], float)
 _eye = _tg + DIST * np.array([np.sin(lo) * np.cos(la), -np.sin(la), -np.cos(lo) * np.cos(la)])
 VP = TL.perspective(TL.CAM['fov'], TL.PLATE_W / TL.PLATE_H) @ TL.look_at(_eye, _tg)
 mod = Image.open(sys.argv[1]).convert('RGBA').resize((TL.PLATE_W, TL.PLATE_H), Image.LANCZOS)
-mod = mod.crop((0, 60, 1080, 640))          # убираем пустые поля сверху/снизу
+mod = K.soften_plate(mod.crop((0, 60, 1080, 640)), feather=90)   # поля сверху/снизу убраны, тень гаснет к краям
 OFF = (0, -60)
 LOGO = K.logo_round(size=104)
 
