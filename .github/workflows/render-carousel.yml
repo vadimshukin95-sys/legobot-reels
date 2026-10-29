@@ -1,0 +1,70 @@
+name: Carousel — четыре модели для первого экрана главной legobot.ru
+
+# Запуск вручную: Actions → Carousel → Run workflow.
+# Новых рендеров нет: берутся прозрачные кадры из запусков anim (артефакты хранятся 2 дня):
+# WeDo (render-wedo2) → SPIKE Prime (render-spike) → SPIKE Essential (render-essential) → EV3 (render-ev3).
+# Кадры кладутся на фон главной, по 6 с на модель, переход 0,5 с (scenes/carousel/build.py). Результат — ветка renders-carousel.
+on:
+  workflow_dispatch:
+    inputs:
+      wedo_run:
+        description: "Номер запуска render-wedo2 (anim)"
+        required: true
+      prime_run:
+        description: "Номер запуска render-spike (anim)"
+        default: "40820171469"
+      essential_run:
+        description: "Номер запуска render-essential (anim)"
+        default: "40825779444"
+      ev3_run:
+        description: "Номер запуска render-ev3 (anim)"
+        default: "40700545379"
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: carousel
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - uses: actions/download-artifact@v4
+        with: { pattern: "wedo2-*", merge-multiple: true, path: frames/wedo, run-id: "${{ inputs.wedo_run }}", github-token: "${{ secrets.GITHUB_TOKEN }}" }
+      - uses: actions/download-artifact@v4
+        with: { pattern: "spike-*", merge-multiple: true, path: frames/prime, run-id: "${{ inputs.prime_run }}", github-token: "${{ secrets.GITHUB_TOKEN }}" }
+      - uses: actions/download-artifact@v4
+        with: { pattern: "essential-*", merge-multiple: true, path: frames/essential, run-id: "${{ inputs.essential_run }}", github-token: "${{ secrets.GITHUB_TOKEN }}" }
+      - uses: actions/download-artifact@v4
+        with: { pattern: "ev3-*", merge-multiple: true, path: frames/ev3, run-id: "${{ inputs.ev3_run }}", github-token: "${{ secrets.GITHUB_TOKEN }}" }
+      - name: Build and encode
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          pip install -q pillow
+          for d in wedo prime essential ev3; do echo "$d: $(ls frames/$d/f*.png | wc -l) frames"; done
+          python scenes/carousel/build.py frames o
+          mkdir -p pub/video
+          ffmpeg -loglevel error -framerate 24 -pattern_type glob -i 'o/o*.png' -an \
+            -c:v libx264 -preset slow -crf 24 -pix_fmt yuv420p -profile:v high -movflags +faststart pub/video/legobot-main.mp4
+          ffmpeg -loglevel error -framerate 24 -pattern_type glob -i 'o/o*.png' -an \
+            -c:v libvpx-vp9 -b:v 0 -crf 36 -row-mt 1 -pix_fmt yuv420p pub/video/legobot-main.webm
+          ffmpeg -loglevel error -framerate 24 -pattern_type glob -i 'o/o*.png' -an -vf scale=640:-2 \
+            -c:v libx264 -preset slow -crf 26 -pix_fmt yuv420p -movflags +faststart pub/video/legobot-main-640.mp4
+          python -c "from PIL import Image; Image.open('o/o0001.png').save('pub/video/legobot-main-poster.webp', quality=82)"
+          ls -la pub/video
+      - name: Push renders-carousel
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd pub && git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q -b renders-carousel && git add -A && git commit -qm "carousel video (run $GITHUB_RUN_ID)"
+          git push -qf "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" renders-carousel
