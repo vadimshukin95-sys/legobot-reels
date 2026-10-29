@@ -1,24 +1,155 @@
 {
  "_": "Витрина /kompl: Скрипач (WeDo 2.0), 3D-принтер (SPIKE Prime), Робостроитель (EV3) на одной подставке. at — studs (Blender), yaw — градусы (как в hero3).",
  "models": {
-  "skripach": {"at": [-26, -2], "yaw": 25},
-  "printer": {"at": [0, 3], "yaw": -55},
-  "robo": {"at": [26, 0], "yaw": -30}
+  "skripach": {
+   "at": [
+    -26,
+    -2
+   ],
+   "yaw": 25
+  },
+  "printer": {
+   "at": [
+    0,
+    3
+   ],
+   "yaw": -55
+  },
+  "robo": {
+   "at": [
+    24,
+    1
+   ],
+   "yaw": 20
+  }
  },
- "plinth": {"rx": 40, "ry": 16, "h": 0.8, "color": "#FFFDFE"},
+ "plinth": {
+  "rx": 40,
+  "ry": 18,
+  "h": 0.8,
+  "color": "#FFFDFE"
+ },
  "robo_override": {
-  "travel": {"approach": 0, "carry": 0},
+  "travel": {
+   "approach": 0,
+   "carry": 0
+  },
   "events": [
-   [1.0, 1.7, "lift", 1, 0], [1.7, 2.3, "claw", "OPEN", "CLOSED"], [2.3, 3.0, "lift", 0, 1],
-   [6.0, 6.7, "lift", 1, 0], [6.7, 7.3, "claw", "CLOSED", "OPEN"], [7.3, 8.0, "lift", 0, 1],
-   [10.0, 10.7, "lift", 1, 0], [10.7, 11.3, "claw", "OPEN", "CLOSED"], [11.3, 12.0, "lift", 0, 1],
-   [15.0, 15.7, "lift", 1, 0], [15.7, 16.3, "claw", "CLOSED", "OPEN"], [16.3, 17.0, "lift", 0, 1]
+   [
+    1.0,
+    1.7,
+    "lift",
+    1,
+    0
+   ],
+   [
+    1.7,
+    2.3,
+    "claw",
+    "OPEN",
+    "CLOSED"
+   ],
+   [
+    2.3,
+    3.0,
+    "lift",
+    0,
+    1
+   ],
+   [
+    6.0,
+    6.7,
+    "lift",
+    1,
+    0
+   ],
+   [
+    6.7,
+    7.3,
+    "claw",
+    "CLOSED",
+    "OPEN"
+   ],
+   [
+    7.3,
+    8.0,
+    "lift",
+    0,
+    1
+   ],
+   [
+    10.0,
+    10.7,
+    "lift",
+    1,
+    0
+   ],
+   [
+    10.7,
+    11.3,
+    "claw",
+    "OPEN",
+    "CLOSED"
+   ],
+   [
+    11.3,
+    12.0,
+    "lift",
+    0,
+    1
+   ],
+   [
+    15.0,
+    15.7,
+    "lift",
+    1,
+    0
+   ],
+   [
+    15.7,
+    16.3,
+    "claw",
+    "CLOSED",
+    "OPEN"
+   ],
+   [
+    16.3,
+    17.0,
+    "lift",
+    0,
+    1
+   ]
   ],
-  "held": [[2.3, 6.7], [11.3, 15.7]],
+  "held": [
+   [
+    2.3,
+    6.7
+   ],
+   [
+    11.3,
+    15.7
+   ]
+  ],
   "home_b": []
  },
- "camera": {"target": [0, 0, 14.5], "dist": 140, "elev": 14, "azimuth": 0, "swing": 3, "lens": 50},
+ "camera": {
+  "target": [
+   0,
+   0,
+   20.5
+  ],
+  "dist": 140,
+  "elev": 14,
+  "azimuth": 0,
+  "swing": 3,
+  "lens": 50
+ },
  "world": "#FDF2F8",
  "light_scale": 1.0,
- "ribbon": {"text": "Комплектом выгоднее", "y": 96, "size": 50, "color": "#DB2777"}
+ "ribbon": {
+  "text": "Комплектом выгоднее",
+  "y": 96,
+  "size": 50,
+  "color": "#DB2777"
+ }
 }
