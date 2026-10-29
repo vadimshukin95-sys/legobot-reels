@@ -129,7 +129,7 @@ def empty(name, loc=(0, 0, 0), parent=None):
         o.parent = parent
     return o
 
-GLOW = {'red': lamp_mat('lamp_red', '#C91A09', '#FF2A14'), 'green': lamp_mat('lamp_green', '#237841', '#2BFF62'),
+GLOW = {'red': lamp_mat('lamp_red', '#C91A09', '#FF1206'), 'green': lamp_mat('lamp_green', '#237841', '#2BFF62'),
         'yellow': lamp_mat('lamp_yellow', '#F5CD2F', '#FFC21A')}
 PL_H = LAY['plinth']['h']
 CEN = tuple(LAY['model_center'])                          # середина модели (LDraw), низ модели — на подставке
