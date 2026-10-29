@@ -1,0 +1,163 @@
+name: Render Pila — рилс «Как колесо превращается в пилу?» (WeDo 2.0, кривошип)
+
+# Запуск вручную: Actions → Render Pila → Run workflow.
+# mode=test — несколько пробных кадров + стоп-кадр и картинки для ВК, mode=anim — весь ролик 17 с (1080×1920, 30 к/с, со звуком).
+# Blender рендерит только модель (прозрачная плашка 1080×700 с тенью), фон/подписи/стрелки/карточку рисует scenes/pila/overlay.py.
+# Результат кладётся в ветку renders-pila (папки test/ и video/).
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "test — пробные кадры, anim — весь ролик"
+        type: choice
+        options: [test, anim]
+        default: test
+      test_frames:
+        description: "Кадры ролика для test (с 0, 30 к/с, через запятую)"
+        default: "75,135,200,282,330,400"
+      samples:
+        description: "Сэмплы Cycles (с шумодавом хватает 10–14)"
+        default: "12"
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: pila
+  cancel-in-progress: true
+
+env:
+  SCENE: scenes/pila
+  FRAME_COUNT: "375"
+  CHUNKS: "20"
+  WIDTH: "1080"
+  HEIGHT: "700"
+
+jobs:
+  test:
+    if: ${{ inputs.mode == 'test' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      LDRAW_DIR: ${{ github.workspace }}/lib/ldraw
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - name: System libraries for headless Blender + fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libegl1 libgl1 libxi6 libxkbcommon0 libsm6 libxrender1 libxxf86vm1 libxfixes3 fonts-inter > /dev/null
+      - name: LDraw library (official + unofficial + repo parts)
+        run: |
+          mkdir -p lib && cd lib
+          curl -sSfL -o complete.zip https://library.ldraw.org/library/updates/complete.zip
+          unzip -q complete.zip
+          if curl -sSfL -o unf.zip https://library.ldraw.org/library/unofficial/ldrawunf.zip; then unzip -q -n unf.zip -d ldraw; fi
+          cp -r ../ldraw/* ldraw/
+      - name: Python packages
+        run: pip install -q bpy==5.2.2 pillow numpy
+      - name: Render test frames + still
+        run: |
+          python "$SCENE/scene.py" test "${{ inputs.test_frames }}" "$WIDTH" "$HEIGHT" "${{ inputs.samples }}" 2>&1 | grep -E "Saved|Traceback| File|Error|MISSING|^parts" || true
+          python "$SCENE/scene.py" still 50 585 "$WIDTH" "$HEIGHT" 24 2>&1 | grep -E "Saved|Traceback| File|Error|MISSING" || true
+          ls $SCENE/frames
+          python "$SCENE/overlay.py" "$SCENE/frames" out "${{ inputs.test_frames }}"
+          python "$SCENE/vk.py" "$SCENE/frames/still.png" vk
+      - name: Publish test frames
+        run: |
+          mkdir -p pub/test
+          cp out/*.png vk/*.jpg pub/test/
+          cp $SCENE/frames/still.png pub/test/plate_still.png
+          for f in $SCENE/frames/f*.png; do cp "$f" "pub/test/plate_$(basename $f)"; done
+      - name: Push renders-pila
+        env:
+          MSG: test
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd pub && git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q -b renders-pila && git add -A && git commit -qm "pila $MSG (run $GITHUB_RUN_ID)"
+          git push -qf "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" renders-pila
+
+  render:
+    if: ${{ inputs.mode == 'anim' }}
+    name: frames ${{ matrix.chunk }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    env:
+      LDRAW_DIR: ${{ github.workspace }}/lib/ldraw
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - name: System libraries for headless Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libegl1 libgl1 libxi6 libxkbcommon0 libsm6 libxrender1 libxxf86vm1 libxfixes3 > /dev/null
+      - name: LDraw library (official + unofficial + repo parts)
+        run: |
+          mkdir -p lib && cd lib
+          curl -sSfL -o complete.zip https://library.ldraw.org/library/updates/complete.zip
+          unzip -q complete.zip
+          if curl -sSfL -o unf.zip https://library.ldraw.org/library/unofficial/ldrawunf.zip; then unzip -q -n unf.zip -d ldraw; fi
+          cp -r ../ldraw/* ldraw/
+      - name: Python packages
+        run: pip install -q bpy==5.2.2 pillow numpy
+      - name: Render frames
+        run: |
+          PER=$(( (FRAME_COUNT + CHUNKS - 1) / CHUNKS ))
+          S=$(( ${{ matrix.chunk }} * PER + 1 ))
+          E=$(( S + PER - 1 )); [ "$E" -gt "$FRAME_COUNT" ] && E=$FRAME_COUNT
+          echo "frames $S..$E"
+          python "$SCENE/scene.py" anim "$S" "$E" "$WIDTH" "$HEIGHT" "${{ inputs.samples }}" 2>&1 | grep -E "Saved|Traceback| File|Error|MISSING|^parts" || true
+          test "$(ls $SCENE/frames/f*.png | wc -l)" -eq $(( E - S + 1 ))
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pila-${{ matrix.chunk }}
+          path: ${{ env.SCENE }}/frames/f*.png
+          retention-days: 2
+
+  assemble:
+    needs: render
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pila-*
+          merge-multiple: true
+          path: plates
+      - name: Compose, sound and encode
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-inter > /dev/null
+          pip install -q pillow numpy
+          test "$(ls plates/f*.png | wc -l)" -eq "$FRAME_COUNT"
+          python "$SCENE/overlay.py" plates o
+          python "$SCENE/audio.py" sound.wav
+          mkdir -p pub/video
+          (git fetch -q --depth 1 origin renders-pila && git archive FETCH_HEAD test | tar -x -C pub) || echo "нет test/ в renders-pila"
+          ffmpeg -loglevel error -framerate 30 -i o/o%04d.png -i sound.wav \
+            -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -profile:v high -level 4.1 -movflags +faststart \
+            -c:a aac -b:a 192k -shortest pub/video/pila_reel.mp4
+          cp cover.jpg pub/video/pila_cover.jpg
+          ls -la pub/video
+      - name: Push renders-pila
+        env:
+          MSG: video
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd pub && git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q -b renders-pila && git add -A && git commit -qm "pila $MSG (run $GITHUB_RUN_ID)"
+          git push -qf "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" renders-pila
