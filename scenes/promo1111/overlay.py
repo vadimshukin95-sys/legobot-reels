@@ -97,7 +97,7 @@ for p in files:
     bx, by = proj(n, 'box')
     if f_pop - 2 <= n <= f_pop + 18:
         burst(cv, bx, by + 120, n, f_pop - 2)
-    x, y = proj(n, 'go'); H.place(cv, N3, clampx(N3, x), max(min(y - 30, Hh - 520), 560), n, f_pop + 6, f_card - 2, rot=-2, wobble=0.9)
+    H.place(cv, N3, W / 2, 1470, n, f_pop + 6, f_card - 2, rot=-2, wobble=0.9)          # «=3» — под подарком, не налезает на «1»
     H.place(cv, C1, W / 2, 1690, n, f_drv, f_turn + 10, rot=1.2, wobble=0.5)
     H.place(cv, C2, W / 2, 1690, n, f_turn + 12, f_card - 2, rot=-1.2, wobble=0.5)
     # финальная карточка
