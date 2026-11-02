@@ -1,0 +1,171 @@
+name: Render Pila HF — пилот HyperFrames (вариант C, кинетический текст)
+
+# Запуск вручную: Actions → Render Pila HF → Run workflow.
+# mode=plates — заново рендерит модель (20 машин), собирает подложку без текста и накладывает текст через HyperFrames.
+# mode=hf — только HyperFrames по готовой подложке из ветки renders-pila-hf (быстро, для правок текста и анимации).
+# Текст и анимация: scenes/pila/hf/gen_hf.py. Подложка: scenes/pila/hf_base.py (overlay.py без текста).
+# Результат — ветка renders-pila-hf: base/ (подложка и звук), video/ (ролик и сравнение со старым), preview/ (кадры).
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "plates — модель + подложка + текст, hf — только текст по готовой подложке"
+        type: choice
+        options: [plates, hf]
+        default: plates
+      samples:
+        description: "Сэмплы Cycles (с шумодавом хватает 10–14)"
+        default: "12"
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: pila-hf
+  cancel-in-progress: true
+
+env:
+  SCENE: scenes/pila
+  FRAME_COUNT: "375"
+  CHUNKS: "20"
+  WIDTH: "1080"
+  HEIGHT: "700"
+
+jobs:
+  render:
+    if: ${{ inputs.mode == 'plates' }}
+    name: frames ${{ matrix.chunk }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    env:
+      LDRAW_DIR: ${{ github.workspace }}/lib/ldraw
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - name: System libraries for headless Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libegl1 libgl1 libxi6 libxkbcommon0 libsm6 libxrender1 libxxf86vm1 libxfixes3 > /dev/null
+      - name: LDraw library (official + unofficial + repo parts)
+        run: |
+          mkdir -p lib && cd lib
+          curl -sSfL -o complete.zip https://library.ldraw.org/library/updates/complete.zip
+          unzip -q complete.zip
+          if curl -sSfL -o unf.zip https://library.ldraw.org/library/unofficial/ldrawunf.zip; then unzip -q -n unf.zip -d ldraw; fi
+          cp -r ../ldraw/* ldraw/
+      - name: Python packages
+        run: pip install -q bpy==5.2.2 pillow numpy
+      - name: Render frames
+        run: |
+          PER=$(( (FRAME_COUNT + CHUNKS - 1) / CHUNKS ))
+          S=$(( ${{ matrix.chunk }} * PER + 1 ))
+          E=$(( S + PER - 1 )); [ "$E" -gt "$FRAME_COUNT" ] && E=$FRAME_COUNT
+          echo "frames $S..$E"
+          python "$SCENE/scene.py" anim "$S" "$E" "$WIDTH" "$HEIGHT" "${{ inputs.samples }}" 2>&1 | grep -E "Saved|Traceback| File|Error|MISSING|^parts" || true
+          test "$(ls $SCENE/frames/f*.png | wc -l)" -eq $(( E - S + 1 ))
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pilahf-${{ matrix.chunk }}
+          path: ${{ env.SCENE }}/frames/f*.png
+          retention-days: 7
+
+  base:
+    needs: render
+    if: ${{ inputs.mode == 'plates' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pilahf-*
+          merge-multiple: true
+          path: plates
+      - name: Base video without text + sound
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-inter > /dev/null
+          pip install -q pillow numpy
+          test "$(ls plates/f*.png | wc -l)" -eq "$FRAME_COUNT"
+          python "$SCENE/hf_base.py" plates o
+          python "$SCENE/audio.py" sound.wav
+          mkdir -p pub/base
+          ffmpeg -loglevel error -framerate 30 -i o/o%04d.png -c:v libx264 -preset slow -crf 14 -pix_fmt yuv420p -movflags +faststart pub/base/pila_base.mp4
+          cp sound.wav pub/base/
+          ls -la pub/base
+      - name: Push renders-pila-hf
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd pub && git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q -b renders-pila-hf && git add -A && git commit -qm "pila-hf base (run $GITHUB_RUN_ID)"
+          git push -qf "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" renders-pila-hf
+
+  hf:
+    needs: [render, base]
+    if: ${{ always() && (inputs.mode == 'hf' || needs.base.result == 'success') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: Tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-inter > /dev/null
+          fc-list | grep -i "Inter Display" | head -3
+      - name: Base video from renders-pila-hf
+        run: |
+          mkdir -p pub
+          git fetch -q --depth 1 origin renders-pila-hf
+          git archive FETCH_HEAD | tar -x -C pub
+          ls -la pub/base
+      - name: Composition
+        run: |
+          D=$SCENE/hf
+          python3 $D/gen_hf.py $D/index.html
+          cp pub/base/pila_base.mp4 $D/base.mp4
+          cp assets/logo.png $D/logo.png
+          ls -la $D
+      - name: HyperFrames render
+        working-directory: ${{ env.SCENE }}/hf
+        run: |
+          npx -y hyperframes@latest --version || true
+          npx -y hyperframes@latest doctor || true
+          npx -y hyperframes@latest lint || true
+          npx -y hyperframes@latest render --output "$GITHUB_WORKSPACE/out/hf.mp4" --fps 30 --quality high
+          ls -la "$GITHUB_WORKSPACE/out"
+      - name: Sound, previews, comparison
+        run: |
+          mkdir -p pub/video pub/preview
+          ffmpeg -loglevel error -y -i out/hf.mp4 -i pub/base/sound.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart pub/video/pila_reel_hf.mp4
+          for t in 1.6 5.6 7.6 9.4 11.2 13.2 15.9; do
+            ffmpeg -loglevel error -y -ss $t -i pub/video/pila_reel_hf.mp4 -frames:v 1 -vf scale=540:-1 pub/preview/hf_$t.jpg
+          done
+          if git fetch -q --depth 1 origin renders-pila; then
+            git archive FETCH_HEAD video/pila_reel.mp4 | tar -x -C /tmp || true
+          fi
+          if [ -f /tmp/video/pila_reel.mp4 ]; then
+            ffmpeg -loglevel error -y -i /tmp/video/pila_reel.mp4 -i pub/video/pila_reel_hf.mp4 \
+              -filter_complex "[0:v]scale=540:960[a];[1:v]scale=540:960[b];[a][b]hstack=inputs=2[v]" \
+              -map "[v]" -map 1:a -c:v libx264 -crf 20 -pix_fmt yuv420p -c:a aac -shortest -movflags +faststart pub/video/compare_old_vs_hf.mp4
+          fi
+          ls -la pub/video pub/preview
+      - name: Push renders-pila-hf
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd pub && rm -rf .git && git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q -b renders-pila-hf && git add -A && git commit -qm "pila-hf video (run $GITHUB_RUN_ID)"
+          git push -qf "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" renders-pila-hf
