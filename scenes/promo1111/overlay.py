@@ -49,6 +49,9 @@ def background():
     return out
 BG = background()
 
+def clampx(sp, x, pad=26):
+    return max(sp.width / 2 + pad, min(W - sp.width / 2 - pad, x))
+
 def proj(f, key):
     k = str(f if f % 2 else f - 1)
     rec = PROJ.get(k) or PROJ[min(PROJ, key=lambda s: abs(int(s) - f))]
@@ -89,12 +92,12 @@ for p in files:
         im = im.resize((W, Hh), Image.LANCZOS)
     cv = BG.copy(); cv.alpha_composite(im)
     H.place(cv, T_TOP, W / 2, 250, n, 3, f_card - 2, rot=-2, wobble=0.5, intro=8)
-    x, y = proj(n, 'sk'); H.place(cv, N1, x, y - 40, n, f_sk + 16, f_card - 2, rot=-3, wobble=0.6)
-    x, y = proj(n, 'pr'); H.place(cv, N2, x, y - 40, n, f_pr + 16, f_card - 2, rot=3, wobble=0.6)
+    x, y = proj(n, 'sk'); H.place(cv, N1, clampx(N1, x), max(y - 40, 470), n, f_sk + 16, f_card - 2, rot=-3, wobble=0.6)
+    x, y = proj(n, 'pr'); H.place(cv, N2, clampx(N2, x), max(y - 40, 470), n, f_pr + 16, f_card - 2, rot=3, wobble=0.6)
     bx, by = proj(n, 'box')
     if f_pop - 2 <= n <= f_pop + 18:
         burst(cv, bx, by + 120, n, f_pop - 2)
-    x, y = proj(n, 'go'); H.place(cv, N3, x, min(y - 30, Hh - 520), n, f_pop + 6, f_card - 2, rot=-2, wobble=0.9)
+    x, y = proj(n, 'go'); H.place(cv, N3, clampx(N3, x), max(min(y - 30, Hh - 520), 560), n, f_pop + 6, f_card - 2, rot=-2, wobble=0.9)
     H.place(cv, C1, W / 2, 1690, n, f_drv, f_turn + 10, rot=1.2, wobble=0.5)
     H.place(cv, C2, W / 2, 1690, n, f_turn + 12, f_card - 2, rot=-1.2, wobble=0.5)
     # финальная карточка
