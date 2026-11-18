@@ -2,7 +2,7 @@ name: Render Peredachi — рилс «Одна ручка — две скоро�
 
 # Запуск вручную: Actions → Render Peredachi → Run workflow.
 # mode=test — несколько пробных кадров, mode=anim — весь ролик 14,5 с (1080×1920, 30 к/с, со звуком, в конце карточка с логотипом).
-# Blender рендерит только модель (прозрачная плашка 1080×1080 с тенью), фон/заголовок/числа у осей/подписи рисует scenes/peredachi/overlay.py.
+# Blender рендерит только модель (прозрачная плашка 1080×1290 с тенью), фон/заголовок/числа у осей/подписи рисует scenes/peredachi/overlay.py.
 # Результат кладётся в ветку renders-peredachi (папки test/ и video/).
 on:
   workflow_dispatch:
@@ -32,7 +32,7 @@ env:
   FRAME_COUNT: "435"
   CHUNKS: "20"
   WIDTH: "1080"
-  HEIGHT: "1080"
+  HEIGHT: "1290"
 
 jobs:
   test:

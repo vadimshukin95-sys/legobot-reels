@@ -10,7 +10,8 @@ sys.path.append(os.path.join(HERE, "..", "pila"))          # reelkit.py — об
 import timeline as TL, reelkit as K, peredachi_model as M
 
 BADGE_COL = {'U2': (30, 90, 168), 'U1': (36, 150, 168), 'C': (240, 122, 18), 'D1': (232, 178, 20), 'D2': (200, 49, 122)}
-BADGE_X = -100.0                                 # LDU: слева от шестерён
+BADGE_RIGHT = 1046                               # px: числа прижаты к правому краю, напротив своих осей
+BADGE_LEFT = 34                                  # «ручка» — слева: справа её заметает сама ручка
 BG = K.bg_studio().convert('RGBA')
 STICK, BADGE, CARD, TITLE = {}, {}, None, None
 
@@ -78,8 +79,10 @@ def draw_badges(img, t):
     al = 1.0
     for name, text, t0 in TL.BADGES:
         y = M.AXLES[name]['y']
-        x, yy = TL.project(t, [(BADGE_X, y, -30.0)])[0]
-        paste_scaled(img, badge_img(name, text), x, yy, pop((t - t0) / 0.3), al)
+        yy = TL.project(t, [(0.0, y, -100.0)])[0][1]
+        im = badge_img(name, text)
+        cx = BADGE_LEFT + im.width / 2 if name == 'C' else BADGE_RIGHT - im.width / 2   # ручку не перекрывает
+        paste_scaled(img, im, cx, yy, pop((t - t0) / 0.3), al)
 
 
 def draw_caps(img, t):

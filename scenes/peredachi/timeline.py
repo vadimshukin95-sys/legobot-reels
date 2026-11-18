@@ -1,12 +1,12 @@
 """Сценарий рилса «Одна ручка — две скорости» — общий для scene.py (Blender), overlay.py и audio.py.
-14,5 с, 30 к/с, 1080×1920. Камера неподвижна (как в рилсе «625 раз»), модель — плашка 1080×1080.
+14,5 с, 30 к/с, 1080×1920. Камера неподвижна, ракурс 3/4 слева-сверху — видны все шестерни между балками; модель — плашка 1080×1290 (снизу запас, чтобы ножки не обрезались).
 Только объяснение, без вопросов к зрителю. В конце — карточка «Больше механизмов — legobot.ru» (2,5 с)."""
 import numpy as np
 import peredachi_model as M
 
 FPS, DUR = 30, 14.5
 FRAMES = int(round(FPS * DUR))                # 435
-PLATE_W, PLATE_H, MY = 1080, 1080, 455        # плашка модели и её верх в кадре
+PLATE_W, PLATE_H, MY = 1080, 1290, 410        # плашка модели и её верх в кадре
 PLATE_FIRST, PLATE_LAST = 0, FRAMES - 1
 
 OMEGA = np.radians(100.0)                     # ручка: 100°/с → синяя 900°/с (30°/кадр), малиновая ≈11°/с
@@ -28,9 +28,9 @@ CAPS = [  # (начало, конец, текст, стиль)
     (10.5, 11.9, 'Быстрая ось — слабая,\nмедленная — сильная', 'white'),
 ]
 import os
-CAM = dict(lat=float(os.environ.get('CAM_LAT', 8)), lon=float(os.environ.get('CAM_LON', -14)), fov=24)
-VIEW = dict(dist=float(os.environ.get('CAM_DIST', 800.0)), target=(0.0, 10.0, float(os.environ.get('CAM_TZ', 0.0))))
-XRAY = float(os.environ.get('XRAY', 0.15))      # передняя балка полупрозрачная («рентген»), чтобы видеть шестерни за ней
+CAM = dict(lat=float(os.environ.get('CAM_LAT', 14)), lon=float(os.environ.get('CAM_LON', -45)), fov=26.6)
+VIEW = dict(dist=float(os.environ.get('CAM_DIST', 780.0)), target=(40.0, 19.0, float(os.environ.get('CAM_TZ', 20.0))))
+XRAY = float(os.environ.get('XRAY', 1.0))       # непрозрачность передней балки (1 — обычная)
 
 
 def smooth(u):
