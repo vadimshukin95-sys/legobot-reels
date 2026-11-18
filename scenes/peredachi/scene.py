@@ -37,9 +37,9 @@ MAPCOL = {}
 MATS = {}
 
 
-def plastic(code):
-    if code in MATS:
-        return MATS[code]
+def plastic(code, xr=False):
+    if (code, xr) in MATS:
+        return MATS[(code, xr)]
     hexv = MAPCOL.get(code) or OVERRIDE.get(code) or ('#' + COL.get(code, ('x', '888888'))[1])
     m = bpy.data.materials.new(f'ld_{code}'); m.use_nodes = True
     b = m.node_tree.nodes['Principled BSDF']
@@ -52,7 +52,9 @@ def plastic(code):
         b.inputs['Transmission Weight'].default_value = 0.7; b.inputs['Roughness'].default_value = 0.12
     if code == 0:
         b.inputs['Roughness'].default_value = 0.5
-    MATS[code] = m
+    if xr:
+        b.inputs['Alpha'].default_value = TL.XRAY
+    MATS[(code, xr)] = m
     return m
 
 
@@ -79,8 +81,8 @@ def resolve(part):
 MESHES = {}
 
 
-def part_mesh(part, color):
-    key = (part, color)
+def part_mesh(part, color, xr=False):
+    key = (part, color, xr)
     if key in MESHES:
         return MESHES[key]
     verts, faces, mats, vidx, codes = [], [], [], {}, []
@@ -103,7 +105,7 @@ def part_mesh(part, color):
     me = bpy.data.meshes.new(part.replace('.dat', '') + f'_{color}')
     me.from_pydata(verts, [], faces)
     for c in codes:
-        me.materials.append(plastic(c))
+        me.materials.append(plastic(c, xr))
     me.polygons.foreach_set('material_index', mats)
     me.update(); me.shade_smooth(); me.set_sharp_from_angle(angle=math.radians(38))
     MESHES[key] = me
@@ -115,7 +117,7 @@ OBJ = []
 
 
 for k, p in enumerate(P0):
-    o = bpy.data.objects.new(f'p{k:02d}_{p["note"]}', part_mesh(p['part'], p['color']))
+    o = bpy.data.objects.new(f'p{k:02d}_{p["note"]}', part_mesh(p['part'], p['color'], p['note'].startswith('передняя балка') and TL.XRAY < 1))
     bpy.context.collection.objects.link(o); o.rotation_mode = 'QUATERNION'
     OBJ.append(o)
 print('parts', len(OBJ))

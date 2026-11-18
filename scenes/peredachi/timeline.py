@@ -27,8 +27,10 @@ CAPS = [  # (начало, конец, текст, стиль)
     (8.9, 10.3, 'Синяя быстрее\nмалиновой в 81 раз', 'sun'),
     (10.5, 11.9, 'Быстрая ось — слабая,\nмедленная — сильная', 'white'),
 ]
-CAM = dict(lat=8, lon=-12, fov=24)
-VIEW = dict(dist=800.0, target=(0.0, 10.0, 0.0))
+import os
+CAM = dict(lat=float(os.environ.get('CAM_LAT', 8)), lon=float(os.environ.get('CAM_LON', -14)), fov=24)
+VIEW = dict(dist=float(os.environ.get('CAM_DIST', 800.0)), target=(0.0, 10.0, float(os.environ.get('CAM_TZ', 0.0))))
+XRAY = float(os.environ.get('XRAY', 0.15))      # передняя балка полупрозрачная («рентген»), чтобы видеть шестерни за ней
 
 
 def smooth(u):
